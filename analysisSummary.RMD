@@ -1,0 +1,148 @@
+---
+title: "Collared Pika Distance Sampling Analysis"
+author: "Jeff Wagner"
+output:
+  html_document:
+    df_print: paged
+  word_document: default
+  pdf_document: default
+---
+```{r echo=FALSE, results='hide', message=FALSE}
+library(dplyr)
+library(data.table)
+library(tidyverse)
+library(unmarked)
+library(lubridate)
+library(ggplot2)
+library(readxl)
+library(psych)
+library(snotelr)
+library(sf)
+library(sp)
+library(mapview)
+library(lwgeom)
+library(AICcmodavg)
+library(spatialEco)
+library(kableExtra)
+library(grid)
+library(gridExtra)
+load("../output/05_Environment.RData")
+```
+
+This is a breakdown of an analysis of collared pika *(Ochotona collaris)* data collected by the Alaska Center for Conservation Science in 2018-2019. The data was collected following a spatially-explicit distance sampling approach (Royle et al. 2004). Analysis was conducted in Program R (version 4.2.0) with package *unmarked* (version 1.2.5) and predictors were compiled via an ArcGIS Pro Python installation (version 3.6+).
+
+### **Model Selection Table:**
+```{r echo=FALSE}
+knitr::kable(expMod.Selection, caption = "Table 1. AICc model selection table",
+             col.names = c("Model", "K", "AICc", "Delta AICc", "Model Likelihood", "AICc Weight", 
+                           "Log Likelihood", "Cumulative Weight")) %>% 
+  kable_styling()
+```
+
+### *Climate & Productivity Model*
+##### Summary and Parameter Estimates
+```{r echo=FALSE}
+summary(climateProductivity)
+confint(climateProductivity, type = "state")
+```
+
+##### Goodness of fit
+```{r echo=FALSE}
+Nmix.gof.test(climateProductivity)
+```
+
+```{r echo=FALSE, message=FALSE, dpi=300, fig.width=8, fig.height=8, fig.fullwidth=TRUE}
+plot.climateProductivity <- grid.arrange(arrangeGrob(plot.climateProductivityPrecip, plot.climateProductivitySummerWarmth,
+                                         plot.climateProductivityJanuaryMinTemp, plot.climateProductivityNDVI,
+                                         layout_matrix = matrix(c(1,2,3,4), byrow = TRUE, ncol = 2),
+                                         left = textGrob(expression(
+                                           paste("Denisty (Pika / km" ^ "2"*")")),
+                                           rot = 90,  gp = gpar(fontsize = 14))))
+```
+
+### *Climate Model*
+##### Summary and Parameter Estimates
+```{r echo=FALSE}
+summary(climate)
+confint(climate, type = "state")
+```
+
+##### Goodness of fit
+```{r echo=FALSE}
+Nmix.gof.test(climate)
+```
+
+```{r echo=FALSE, message=FALSE,dpi=300, fig.width=8, fig.height=8, fig.fullwidth=TRUE}
+plot.climate <- grid.arrange(arrangeGrob(plot.climatePrecip, plot.climateSummerWarmth,
+                                         grid::nullGrob(), plot.climateJanuaryMinTemp, grid::nullGrob(),
+                                          layout_matrix = matrix(c(1,1,2,2,3,4,4,5), byrow = TRUE, ncol = 4),
+                                          left = textGrob(expression(
+                                            paste("Denisty (Pika / km" ^ "2"*")")),
+                                                         rot = 90,  gp = gpar(fontsize = 14))))
+```
+
+### *Productivity Model*
+##### Summary and Parameter Estimates
+```{r echo=FALSE}
+summary(productivity)
+confint(productivity, type = "state")
+```
+##### Goodness of fit
+```{r echo=FALSE}
+Nmix.gof.test(productivity)
+```
+
+```{r echo=FALSE, message=FALSE, dpi=300, fig.width=8, fig.height=8, fig.fullwidth=TRUE}
+plot.productivity <- grid.arrange(arrangeGrob(plot.productivityNDVI, plot.productivityLOGS,
+                                         grid::nullGrob(), plot.productivityWetness, grid::nullGrob(),
+                                          layout_matrix = matrix(c(1,1,2,2,3,4,4,5), byrow = TRUE, ncol = 4),
+                                          left = textGrob(expression(
+                                            paste("Denisty (Pika / km" ^ "2"*")")),
+                                                         rot = 90,  gp = gpar(fontsize = 14))))
+```
+
+### *Climate & Topography Model*
+##### Summary and Parameter Estimates
+```{r echo=FALSE}
+summary(climateTopo)
+confint(climateTopo, type = "state")
+```
+
+##### Goodness of fit
+```{r echo=FALSE}
+Nmix.gof.test(climateTopo)
+```
+
+
+```{r echo=FALSE, message=FALSE, dpi=300, fig.width=8, fig.height=8, fig.fullwidth=TRUE}
+plot.climate <- grid.arrange(arrangeGrob(plot.climateTopoPrecip, plot.climateTopoSummerWarmth,
+                                         plot.climateTopoJanuaryMinTemp, plot.climateTopoElevation,
+                                         plot.climateTopoRoughness, plot.climateTopoNorthness,
+                                          layout_matrix = matrix(c(1,2,3,4,5,6), byrow = TRUE, ncol = 2),
+                                          left = textGrob(expression(
+                                            paste("Denisty (Pika / km" ^ "2"*")")),
+                                                         rot = 90,  gp = gpar(fontsize = 14))))
+```
+
+
+### *Model-Averaged Estimates*
+```{r echo = FALSE}
+knitr::kable(df, caption = "Table 2. Model-averaged coefficients",
+             col.names = c("Parameter", "# of models", "Estimate", "SE", "Lower CL", "Upper CL")) %>% 
+  kable_styling() %>%
+  row_spec(c(1,2,4,6,8),bold=T,hline_after = T)
+```
+
+```{r echo=FALSE, message=FALSE, dpi=300, fig.width=8, fig.height=10, fig.fullwidth=TRUE}
+plot.average <- grid.arrange(arrangeGrob(plot.avgPrecip, plot.avgSummerWarmth, plot.avgJanuaryMinTemp, 
+                                         plot.avgLogs, plot.avgNDVI, plot.avgWetness,
+                                         plot.avgRoughness, plot.avgElevation, plot.avgNorthness,
+                                         grid::nullGrob(), plot.Location, grid::nullGrob(),
+                                         layout_matrix = matrix(c(1,2,3,
+                                                                  4,5,6,
+                                                                  7,8,9,
+                                                                  10,11,12), byrow = TRUE, ncol = 3),
+                                         left = textGrob(expression(
+                                           paste("Denisty (Pika / km" ^ "2"*")")),
+                                           rot = 90,  gp = gpar(fontsize = 14))))
+```
