@@ -133,6 +133,6 @@ dev.off()
 
 ## Model-averaged coefficient table
 library(gplots)
-pdf("./output/figures/modavgCoefficients.pdf", width = 8, height = 4)
+pdf("./output/modavgCoefficients.pdf", width = 8, height = 4)
 grid.table(df.modavgEstimates)
 dev.off()

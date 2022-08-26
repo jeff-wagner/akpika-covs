@@ -9,7 +9,7 @@
 
 # Read in initial script - This script sets the working directory, loads all of our required libraries, and
 # defines the path to our data.
-source( "initscript.r")
+source( "00_init/initscript.r")
 
 # Part 1: Load the distance sampling observation data  ------------------------------------------------------
 

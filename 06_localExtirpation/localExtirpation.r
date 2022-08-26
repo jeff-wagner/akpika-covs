@@ -8,7 +8,7 @@
 # ---------------------------------------------------------------------------
 
 # Read in the initialization script (reads in required packages, etc)
-source("initscript.r")
+source("00_init/initscript.r")
 
 ## Prepare data
 # Read in the data

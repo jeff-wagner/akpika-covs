@@ -26,7 +26,7 @@ library(spatialEco)
 library(kableExtra)
 library(grid)
 library(gridExtra)
-load("../output/05_Environment.RData")
+load("05_Environment.RData")
 ```
 
 This is a breakdown of an analysis of collared pika *(Ochotona collaris)* data collected by the Alaska Center for Conservation Science in 2018-2019. The data was collected following a spatially-explicit distance sampling approach (Royle et al. 2004). Analysis was conducted in Program R (version 4.2.0) with package *unmarked* (version 1.2.5) and predictors were compiled via an ArcGIS Pro Python installation (version 3.6+).

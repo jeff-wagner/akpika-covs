@@ -218,6 +218,6 @@ load("./04_modelPredictions/ws_modelPredictions.RData")
       
 ## Model tables
 library(gplots)
-pdf("./output/figures/explanatoryModels.pdf", width = 10, height = 4)
+pdf("./output/explanatoryModels.pdf", width = 10, height = 4)
 grid.table(expMod.Selection)
 dev.off()
