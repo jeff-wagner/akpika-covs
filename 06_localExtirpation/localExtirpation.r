@@ -38,11 +38,16 @@ siteOcc$occ.status <- as.factor(siteOcc$occ.status)
 siteOcc$Date <- as.Date(siteOcc$Date, format = '%m/%d/%Y')
 
 # Convert occupied site status to binary variable
-siteOcc$occ.status <- ifelse(siteOcc$occ_status=="occupied", 1, 0)
+siteOcc$occ.status <- ifelse(siteOcc$occ_status=="occupied", 0, 1)
+
+# Standardize variables
+siteOcc$st.precip <- (siteOcc$precip-mean(siteOcc$precip))/sd(siteOcc$precip)
+siteOcc$st.summerWarmth <- (siteOcc$summerWarmth-mean(siteOcc$summerWarmth))/sd(siteOcc$summerWarmth)
+siteOcc$st.januaryMinTemp <- (siteOcc$januaryMinTemp-mean(siteOcc$januaryMinTemp))/sd(siteOcc$januaryMinTemp)
 
 # Write out site-level data with covariates
-save(siteOcc, file = "./data/siteOcc.RDS")
-write.csv(siteOcc, file = "./data/siteOcc.csv")
+# save(siteOcc, file = "./data/siteOcc.RDS")
+# write.csv(siteOcc, file = "./data/siteOcc.csv")
 
 ## Logistic regression models
 climate <- glm(occ.status ~ precip + summerWarmth + januaryMinTemp, data = siteOcc, family = "binomial")
@@ -62,3 +67,72 @@ summary(climateProductivity)
 
 latitude <- glm(occ.status ~ latitude, data = siteOcc, family = "binomial")
 summary(latitude)
+
+## Logistic regression by region
+# Define 3 different regions along latitudinal gradient
+siteOcc$region <- ifelse(siteOcc$Location == "Hatcher Pass" | siteOcc$Location == "Southcentral" | siteOcc$Location == "JBER",
+                         "Southcentral", siteOcc$Location)
+siteOcc$region <- ifelse(siteOcc$Location == "Denali" | siteOcc$Location == "Paxson",
+                         "Interior", siteOcc$region)
+siteOcc$region <- ifelse(siteOcc$Location == "Steese",
+                         "Subarctic", siteOcc$region)
+siteOcc$region <- factor(siteOcc$region, levels = c("Southcentral", "Interior", "Subarctic"))
+siteOcc$region.num <- as.numeric(siteOcc$region)
+
+# libraries
+library(rjags)
+library(jagsUI)
+library(ggmcmc)
+
+nregions <- nlevels(siteOcc$region)
+
+# Bayesian model, this is JAGS code
+mod <- "
+model{
+  for(i in 1:length(y)){
+        y[i] ~ dbinom(p[i], 1)  # Each observation follows a binomial distribution with 1 trial and probability of being occupied (p)
+        logit(p[i]) = b0[r[i]] + b1[r[i]]*x1[i] + b2[r[i]]*x2[i] + b3[r[i]]*x3[i]  # this probability has an inverse logit relationship with the 
+  }
+    for(r in 1:nregions){
+    b0[r] ~ dnorm(sigma0, tau0)
+    b1[r] ~ dnorm(sigma1, tau1)
+    b2[r] ~ dnorm(sigma2, tau2)
+    b3[r] ~ dnorm(sigma3, tau3)
+    }
+    
+    sigma0 ~ dnorm(0, 0.0001)
+    sigma1 ~ dnorm(0, 0.0001)
+    sigma2 ~ dnorm(0, 0.0001)
+    sigma3 ~ dnorm(0, 0.0001)
+    tau0 ~ dgamma(0.001, 0.001)
+    tau1 ~ dgamma(0.001, 0.001)
+    tau2 ~ dgamma(0.001, 0.001)
+    tau3 ~ dgamma(0.001, 0.001)
+}
+"
+
+dataList <- list(r=siteOcc$region.num,
+                 nregions=nregions,
+                 y=siteOcc$occ.status,
+                 x1=siteOcc$st.precip,
+                 x2=siteOcc$st.summerWarmth,
+                 x3=siteOcc$st.januaryMinTemp)
+params <- c("b0", "b1", "b2", "b3")
+inits <- NULL
+
+output <- jags(data = dataList,
+               inits = inits,
+               parameters.to.save = params,
+               model.file = textConnection(mod),
+               n.chains = 3,
+               n.adapt = 10000,
+               n.iter = 1001000,
+               n.burnin = 100000,
+               n.thin = 10,
+               parallel = FALSE,
+               DIC = TRUE)
+output
+
+## diagnostic plots
+traceplot(output, parameters=c("b0", "b1", "b2", "b3"))
+autocorr.plot(output$samples[,1:3],lag.max=40,auto.layout=TRUE,ask=TRUE)
