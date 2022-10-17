@@ -1,5 +1,5 @@
 # akpika-density
-Analysis of ecological drivers of collared pika (Ochotona collaris) densities in Alaska.
+Distance sampling analysis of ecological drivers of collared pika (Ochotona collaris) densities in Alaska.
 
 *Author*: Jeff Wagner, University of Wyoming
 
