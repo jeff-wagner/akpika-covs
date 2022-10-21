@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # ---------------------------------------------------------------------------
-# Unmarked formatting
+# Bayesian HDS formatting
 # Author: Jeff Wagner
 # Last Updated: 2022-08-17
 # Usage: Must be executed in R 4.0.0+.
@@ -116,12 +116,22 @@ dim(pika.obs.alltrans)   #we've gone from 182 observations to 230 indicating we'
 tail(pika.obs.alltrans)  #yes, looks like we've tacked on the transects where no pika observed.
 
 
-# Part 3: Format the observation data for unmarked  ------------------------------------------------------------
-# Aggregate detections into 50m or 100 m intervals
-# formatDistData is a data structure needed for the distsamp function in unmarked.
-# dists.order is the observation data. You have to tell the unmarked package which column is your distCol (the 
-# perpendicular distance), which in this file is 'dist'. Additionally, you have to identify the transectNameCol
-# (the transect names), which is 'trans' in this data file. 
+# Part 3: Format the observation data for JAGS  ------------------------------------------------------------
+
+
+obsCovData <- left_join(transect.covs, pika.obs.alltrans, by = c("Site", "transect")) %>% 
+  select(-'compare.transcovs.obs$transect')
+
+for(i in 1:ncol(obsCovData[,56:57])){
+  obsCovData[is.na(obsCovData[,i]), i] <- 0
+}
+
+DSdata <- list(nsites = length(unique(obsCovData$Site)),
+               site = obsCovData(Site),
+               nind = sum(obsCovData$Count),
+               y=1)
+
+
 pika.obs.alltrans[order(pika.obs.alltrans$transect),]
 levels(pika.obs.alltrans$transect)
 pika.obs.alltrans$transect <- factor(pika.obs.alltrans$transect, levels = levels(transect.covs$transect))
