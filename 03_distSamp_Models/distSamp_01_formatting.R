@@ -120,17 +120,37 @@ tail(pika.obs.alltrans)  #yes, looks like we've tacked on the transects where no
 
 
 obsCovData <- left_join(transect.covs, pika.obs.alltrans, by = c("Site", "transect")) %>% 
-  select(-'compare.transcovs.obs$transect')
+  select(-'compare.transcovs.obs$transect', -'Location.y', -'Observer.y', -'observer.y')
 
-for(i in 1:ncol(obsCovData[,56:57])){
-  obsCovData[is.na(obsCovData[,i]), i] <- 0
-}
+obsCovData <- obsCovData %>% 
+                filter(Count == 3) %>%
+                slice(rep(1:n(), each = 2)) %>% 
+                bind_rows(obsCovData) %>% 
+                mutate(Count = replace(Count, Count == 3, 1))
 
-DSdata <- list(nsites = length(unique(obsCovData$Site)),
-               site = obsCovData(Site),
-               nind = sum(obsCovData$Count),
-               y=1)
+DSdata <- data.frame(Site = obsCovData$Site,
+                     y = NA,
+                     perp.dist = obsCovData$perp.dist,
+                     Count = obsCovData$Count)
+DSdata$y <- ifelse(is.na(obsCovData$perp.dist), 0, 1)
 
+# Data augmentation: add a bunch of "pseudo-individuals"
+nz <- 500                        # Augment by 500
+nind <- sum(DSdata$y == 1)
+y <- c(DSdata[,2], rep(0, nz))     # Augmented detection indicator y
+site <- c(DSdata[,1], rep(NA, nz)) # Augmented site indicator, unknown (i.e., NA) for augmented inds.
+d <- c(DSdata[,3], rep(NA,nz))     # Augmented distance data (with NAs)
+B = round(max(DSdata$perp.dist, na.rm = TRUE))+2
+
+covList <- as.list(obsCovData)
+DSdata <- list(nsites = length(unique(covList$Site)),
+               site = site,
+               nind = nind,
+               y=y,
+               d=d,
+               B=B)
+
+# Left off here
 
 pika.obs.alltrans[order(pika.obs.alltrans$transect),]
 levels(pika.obs.alltrans$transect)

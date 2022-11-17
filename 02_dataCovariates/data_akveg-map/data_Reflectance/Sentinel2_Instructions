@@ -1,0 +1,16 @@
+#### 1.2. Calculate Sentinel-2 Spectral Composites
+
+The Earth Engine scripts calculate and export cloud-reduced, maximum-NDVI composites for Sentinel-2 bands 2-8a and 11-12 plus the following derived metrics: enhanced vegetation index 2 (EVI-2), normalized burn ratio (NBR), normalized difference moisture index (NDMI), normalized difference snow index (NDSI), normalized difference vegetation index (NDVI), and normalized difference water index (NDWI). Because the North American Beringia study region includes latitudes greater than 65° N, all composites are calculated from the Top of Atmosphere (TOA) image collections. These scripts can be modified to calculate composites from surface reflectance image collections for study regions that are below 65° N. Composites are calculated individually for the months of May-September from years 2015-2019. See Chander et al. 2009 for a description of the TOA reflectance method. See the Google Earth Engine Sentinel-2 page for more information about the source data: https://developers.google.com/earth-engine/datasets/catalog/sentinel-2.
+
+
+**Instructions for Google Earth Engine:**
+
+* Sign up for a Google Earth Engine developer account (https://earthengine.google.com/) 
+
+* In the [Google Earth Engine code editor](https://code.earthengine.google.com/), paste the earth engine script into the javascript window. You can optionally modify and save the script in a git repository within Google Earth Engine.
+
+* Run the script. The results can be inspected in the map window (shows a natural color blue-green-red image), in the inspector, and in the console.
+
+* Each image must be exported to a Google Drive folder (or other Google storage option) by clicking the "Run" button. The export requires a large amount of available storage in the Google Drive (over 10 TB) and can take several days to weeks to process.
+
+* Download the imagery from the Google storage to a local directory. See the script "DataDownload_Sentinel2.py" for programatic download with Google API. Otherwise, you can manually download files from your Google Drive folder. 
