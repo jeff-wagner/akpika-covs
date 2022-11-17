@@ -128,18 +128,33 @@ obsCovData <- obsCovData %>%
                 bind_rows(obsCovData) %>% 
                 mutate(Count = replace(Count, Count == 3, 1))
 
-DSdata <- data.frame(Site = obsCovData$Site,
-                     y = NA,
-                     perp.dist = obsCovData$perp.dist,
-                     Count = obsCovData$Count)
-DSdata$y <- ifelse(is.na(obsCovData$perp.dist), 0, 1)
+DSdata <- data.frame(site = as.character(obsCovData$Site),
+                     transect = as.character(obsCovData$transect),
+                     y = obsCovData$Count,
+                     perp.dist = obsCovData$perp.dist)
 
-# Data augmentation: add a bunch of "pseudo-individuals"
-nz <- 500                        # Augment by 500
-nind <- sum(DSdata$y == 1)
-y <- c(DSdata[,2], rep(0, nz))     # Augmented detection indicator y
-site <- c(DSdata[,1], rep(NA, nz)) # Augmented site indicator, unknown (i.e., NA) for augmented inds.
-d <- c(DSdata[,3], rep(NA,nz))     # Augmented distance data (with NAs)
+# Get number of individuals detected per site
+# ncap = 1 plus number of detected individuals per site
+ncap <- table(DSdata[,2])            # ncap = 1 if no individuals captured
+sites0 <- DSdata[is.na(DSdata[,3]),][,2] # sites where nothing detected
+ncap[as.character(sites0)] <- 0    # Fill in 0 for sites with no detections
+ncap <- as.vector(ncap)
+
+# Prepare other data
+transect <- DSdata[!is.na(DSdata[,3]),2]   # site ID of each observation
+delta <- 5                         # distance bin width for rect. approx.
+midpt <- seq(delta/2, B, delta)    # make mid-points and chop up data
+dclass <- data[,5] %/% delta + 1   # convert distances to cat. distances
+nD <- length(midpt)                # Number of distance intervals
+dclass <- dclass[!is.na(data[,2])] # Observed categorical observations
+nind <- length(dclass)             # Total number of individuals detected
+
+# # Data augmentation: add a bunch of "pseudo-individuals"
+# nz <- 500                        # Augment by 500
+# nind <- sum(DSdata$y == 1)
+# y <- c(DSdata[,2], rep(0, nz))     # Augmented detection indicator y
+# site <- c(DSdata[,1], rep(NA, nz)) # Augmented site indicator, unknown (i.e., NA) for augmented inds.
+# d <- c(DSdata[,3], rep(NA,nz))     # Augmented distance data (with NAs)
 B = round(max(DSdata$perp.dist, na.rm = TRUE))+2
 
 covList <- as.list(obsCovData)
