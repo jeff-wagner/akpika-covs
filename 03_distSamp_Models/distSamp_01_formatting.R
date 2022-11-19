@@ -133,6 +133,12 @@ DSdata <- data.frame(site = as.character(obsCovData$Site),
                      y = obsCovData$Count,
                      perp.dist = obsCovData$perp.dist)
 
+# Order DS data and transect covariates to ensure correct order in analysis
+DSdata <- DSdata %>% 
+  arrange(transect)
+transect.covs <- transect.covs %>% 
+  arrange(transect)
+
 # Get number of individuals detected per site
 # ncap = 1 plus number of detected individuals per site
 ncap <- table(DSdata[,2])            # ncap = 1 if no individuals captured
@@ -141,13 +147,48 @@ ncap[as.character(sites0)] <- 0    # Fill in 0 for sites with no detections
 ncap <- as.vector(ncap)
 
 # Prepare other data
-transect <- DSdata[!is.na(DSdata[,3]),2]   # site ID of each observation
+B = round(max(DSdata$perp.dist, na.rm = TRUE))+2 # rounded max detection distance
+site <- as.numeric(as.factor(DSdata[!is.na(DSdata[,3]),2]))   # site ID of each observation
 delta <- 5                         # distance bin width for rect. approx.
 midpt <- seq(delta/2, B, delta)    # make mid-points and chop up data
-dclass <- data[,5] %/% delta + 1   # convert distances to cat. distances
+dclass <- DSdata[,4] %/% delta + 1   # convert distances to cat. distances
 nD <- length(midpt)                # Number of distance intervals
-dclass <- dclass[!is.na(data[,2])] # Observed categorical observations
+dclass <- dclass[!is.na(DSdata[,3])] # Observed categorical observations
 nind <- length(dclass)             # Total number of individuals detected
+nsites <- length(unique(DSdata$transect)) # Total number of sites
+
+# Prepare covariate data
+DScovs <- list(
+              searchSpeed=scale(transect.covs$search.speed),
+              summerWarmth=scale(transect.covs$summerWarmth),
+              precip=scale(transect.covs$precip),
+              januaryMinTemp=scale(transect.covs$januaryMinTemp),
+              ndvi=scale(transect.covs$ndvi),
+              logs=scale(transect.covs$logs),
+              elevation=scale(transect.covs$elevation),
+              latitude=scale(transect.covs$latitude),
+              Site=as.numeric(as.factor(transect.covs$Site)),
+              roughness=scale(transect.covs$roughness),
+              northness=scale(transect.covs$northness))
+
+# Bundle and summarize data set
+str( win.data <- list(nsites=nsites, nind=nind, B=B, nD=nD, midpt=midpt,
+                      delta=delta, ncap=ncap, 
+                      searchSpeed=DScovs$searchSpeed[,1],
+                      summerWarmth=DScovs$summerWarmth[,1],
+                      precip=DScovs$precip[,1],
+                      januaryMinTemp=DScovs$januaryMinTemp[,1],
+                      ndvi=DScovs$ndvi[,1],
+                      logs=DScovs$logs[,1],
+                      elevation=DScovs$elevation[,1],
+                      latitude=DScovs$latitude[,1],
+                      Site=DScovs$Site,
+                      roughness=DScovs$roughness[,1],
+                      northness=DScovs$northness[,1],
+                      dclass=dclass,
+                      site=site) )
+
+save(win.data, DSdata, DScovs, file = "./data/DSdata.RData")
 
 # # Data augmentation: add a bunch of "pseudo-individuals"
 # nz <- 500                        # Augment by 500
@@ -155,50 +196,16 @@ nind <- length(dclass)             # Total number of individuals detected
 # y <- c(DSdata[,2], rep(0, nz))     # Augmented detection indicator y
 # site <- c(DSdata[,1], rep(NA, nz)) # Augmented site indicator, unknown (i.e., NA) for augmented inds.
 # d <- c(DSdata[,3], rep(NA,nz))     # Augmented distance data (with NAs)
-B = round(max(DSdata$perp.dist, na.rm = TRUE))+2
-
-covList <- as.list(obsCovData)
-DSdata <- list(nsites = length(unique(covList$Site)),
-               site = site,
-               nind = nind,
-               y=y,
-               d=d,
-               B=B)
+# 
+# B = round(max(DSdata$perp.dist, na.rm = TRUE))+2
+# 
+# covList <- as.list(obsCovData)
+# DSdata <- list(nsites = length(unique(covList$Site)),
+#                site = site,
+#                nind = nind,
+#                y=y,
+#                d=d,
+#                B=B)
 
 # Left off here
-
-pika.obs.alltrans[order(pika.obs.alltrans$transect),]
-levels(pika.obs.alltrans$transect)
-pika.obs.alltrans$transect <- factor(pika.obs.alltrans$transect, levels = levels(transect.covs$transect))
-
-# Create the yDat object
-yDat <- formatDistData(pika.obs.alltrans, distCol="perp.dist", transectNameCol="transect", 
-                       dist.breaks=c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100))
-yDat
-dim(yDat)    #now we have 119 rows, 71 transects with pika obs and 48 without.
-
-dim(transect.covs)  #119 transect-level covariates
-
-# Part 4: Combine the observation and covariate data in unmarked format  -----------------------------------------
-# unmarkedFrameDS is the name for the data frame used for distance sampling in the unmarked package
-# The unmarked package distsamp model needs inputs for siteCovs(site or transect-level covariates),
-# which we called 'covs', whether you are working with line or point data (ours is line transects),
-# the distance breaks you decided upon (here the bins are 100m), and tlength (the transect length),
-# which we called 'length' in the covs file. The unitsIn must match for the distance breaks and 
-# transect lenghts. Here, we are working in meters.
-umf <- unmarkedFrameDS(y=as.matrix(yDat), siteCovs=transect.covs, survey="line", 
-                       dist.breaks=c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100),
-                       tlength=transect.covs$trans.length, unitsIn="m")
-
-# Summary of the unmarked data frame for analysis
-summary(umf)
-
-# Part 4: View the data and final cleanup  -----------------------------------------------------------------------
-# VIEW THE DATA TO MAKE SURE EACH TRANSECT'S DATA IS ALLIGNED WITH THE PROPER TRANSECT COVARIATES!
-umf
-
-hist(umf, freq=TRUE, xlab="distance (m)", main="", cex.lab=0.8, cex.axis=0.8)
-
-# Remove unnecessary objects from the environment
-rm(compare.transcovs.obs, pika.obs.t, nopika)
 

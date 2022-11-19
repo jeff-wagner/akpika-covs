@@ -1,0 +1,33 @@
+
+model{
+# Priors
+  alpha0 ~ dunif(-10,10)
+  alpha1 ~ dunif(-10,10)
+  beta0 ~ dunif(-10,10)
+  beta1 ~ dunif(-10,10)
+
+  for(i in 1:nind){
+    dclass[i] ~ dcat(fc[site[i],]) # Part 1 of HM
+  }
+
+  for(s in 1:nsites){
+    # Construct cell probabilities for nD multinomial cells
+    for(g in 1:nD){                 # midpt = mid-point of each cell
+      log(p[s,g]) <- -midpt[g] * midpt[g] / (2*sigma[s]*sigma[s])
+      pi[s,g] <- delta / B          # probability per interval
+      f[s,g] <- p[s,g] * pi[s,g]
+      fc[s,g] <- f[s,g] / pcap[s]
+    }
+    pcap[s] <- sum(f[s,])           # Pr(capture): sum of rectangular areas
+
+    ncap[s] ~ dbin(pcap[s], N[s])   # Part 2 of HM
+    N[s] ~ dpois(lambda[s])         # Part 3 of HM
+    log(lambda[s]) <- beta0 + beta1 * summerWarmth[s] # linear model abundance
+    log(sigma[s])<- alpha0 + alpha1*searchSpeed[s]      # linear model detection
+  }
+  # Derived parameters
+  Ntotal <- sum(N[])
+  area<- nsites*1*2*B  # Unit length == 1, half-width = B
+  D<- Ntotal/area
+}
+
