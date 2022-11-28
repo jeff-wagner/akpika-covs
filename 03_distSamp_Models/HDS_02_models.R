@@ -4,7 +4,7 @@
 # Author: Jeff Wagner
 # Last Updated: 2022-11-18
 # Usage: Must be executed in R 4.0.0+.
-# Description: "Bayesian HDS models" builds and fits Bayesian Hierarchica Distance Sampling (HDS) models for the collared pika data.
+# Description: "Bayesian HDS models" builds and fits Bayesian Hierarchical Distance Sampling (HDS) models for the collared pika data.
 # ---------------------------------------------------------------------------
 
 library(rjags)
@@ -12,10 +12,8 @@ library(jagsUI)
 
 load("./data/DSdata.RData")
 
-data <- win.data[c(1:9, 19:20)]
-data$nind <- 41
-data$dclass <- data$dclass[1:41]
-data$site <- data$site[1:41]
+# Subset for columns of interest
+data <- win.data[c(1:11, 18, 21:23)]
 
 # Code from AHM Vol 1 Ch 8.5 (pg 453)
 # BUGS model specification for line-transect HDS
@@ -26,15 +24,17 @@ model{
   alpha1 ~ dunif(-10,10)
   beta0 ~ dunif(-10,10)
   beta1 ~ dunif(-10,10)
+  sigma.site ~ dunif(0,10)
+  tau <- 1/(sigma.site*sigma.site)
 
-  for(i in 1:nind){
-    dclass[i] ~ dcat(fc[site[i],]) # Part 1 of HM
+  for(i in 1:nind){ # Loop through all individuals
+    dclass[i] ~ dcat(fc[transect[i],]) # Part 1 of HM, distance class of each ind. ~ cat(cell prob. vector)
   }
 
-  for(s in 1:nsites){
+  for(s in 1:ntransects){     # loop through transects
     # Construct cell probabilities for nD multinomial cells
-    for(g in 1:nD){                 # midpt = mid-point of each cell
-      log(p[s,g]) <- -midpt[g] * midpt[g] / (2*sigma[s]*sigma[s])
+    for(g in 1:nD){                 # loop through each distance class
+      log(p[s,g]) <- -midpt[g] * midpt[g] / (2*sigma[s]*sigma[s])   # midpt = mid-point of each cell
       pi[s,g] <- delta / B          # probability per interval
       f[s,g] <- p[s,g] * pi[s,g]
       fc[s,g] <- f[s,g] / pcap[s]
@@ -42,23 +42,39 @@ model{
     pcap[s] <- sum(f[s,])           # Pr(capture): sum of rectangular areas
 
     ncap[s] ~ dbin(pcap[s], N[s])   # Part 2 of HM
-    N[s] ~ dpois(lambda[s])         # Part 3 of HM
-    log(lambda[s]) <- beta0 + beta1 * summerWarmth[s] # linear model abundance
+    
+    # OFFSET TERM - This is where I need help
+    N[s] ~ dpois(lambda.abs[s])         # Part 3 of HM
+  
+    # Do I need to use site area here instead of transect length (which is in m, so I convert to km)?
+    lambda.abs[s] <- lambda[s]*(transectLength[s]/1000) # lambda is a site density in indiviudals per sq km, lambda.abs is the number of expected per km surveyed?
+    log(lambda[s]) <- beta0 + beta1 * summerWarmth[s] + site.eff[s] # linear model abundance w/ random effect of site
     log(sigma[s])<- alpha0 + alpha1*searchSpeed[s]      # linear model detection
+    
+    site.eff[s] ~ dnorm(0, tau) # random effect of site
+    
   }
+  
   # Derived parameters
+  
+  # for(j in 1:nsites)){
+  #         Nsite[j] <- N[]
+  # }
+
   Ntotal <- sum(N[])
-  area<- nsites*1*2*B  # Unit length == 1, half-width = B
-  D<- Ntotal/area
 }
 ",fill=TRUE, file = "./models/SW_model.txt")
 
 # Inits
-Nst <- data$ncap + 1
-inits <- function(){list(alpha0=0, alpha1=0, beta0=0, beta1=0, N=Nst)}
+Nst <- win.data$ncap + 1
+
+inits <- function(){
+  list(
+    alpha0=rnorm(1,1.7,0.5), alpha1=0, beta0=rnorm(1,0,2), beta1=rnorm(1,0,2), N=Nst
+)}
 
 # Params to save
-params <- c("alpha0", "alpha1", "beta0", "beta1", "Ntotal","D", "N")
+params <- c("alpha0", "alpha1", "beta0", "beta1", "lambda.abs", "Ntotal", "N")
 
 # MCMC settings
 ni <- 12000   ;   nb <- 2000   ;   nt <- 1   ;   nc <- 3

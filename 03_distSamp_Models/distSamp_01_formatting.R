@@ -148,18 +148,21 @@ ncap <- as.vector(ncap)
 
 # Prepare other data
 B = round(max(DSdata$perp.dist, na.rm = TRUE))+2 # rounded max detection distance
-site <- as.numeric(as.factor(DSdata[!is.na(DSdata[,3]),2]))   # site ID of each observation
+transect <- as.numeric(as.factor(DSdata[!is.na(DSdata[,3]),2]))   # site ID of each observation
+site <- as.numeric(as.factor(DSdata[!is.na(DSdata[,3]),1]))
 delta <- 5                         # distance bin width for rect. approx.
 midpt <- seq(delta/2, B, delta)    # make mid-points and chop up data
 dclass <- DSdata[,4] %/% delta + 1   # convert distances to cat. distances
 nD <- length(midpt)                # Number of distance intervals
 dclass <- dclass[!is.na(DSdata[,3])] # Observed categorical observations
 nind <- length(dclass)             # Total number of individuals detected
-nsites <- length(unique(DSdata$transect)) # Total number of sites
+ntransects <- length(unique(DSdata$transect)) # Total number of sites
+nsites <- length(unique(DSdata$site))
 
 # Prepare covariate data
 DScovs <- list(
               searchSpeed=scale(transect.covs$search.speed),
+              transectLength=transect.covs$trans.length,
               summerWarmth=scale(transect.covs$summerWarmth),
               precip=scale(transect.covs$precip),
               januaryMinTemp=scale(transect.covs$januaryMinTemp),
@@ -172,9 +175,10 @@ DScovs <- list(
               northness=scale(transect.covs$northness))
 
 # Bundle and summarize data set
-str( win.data <- list(nsites=nsites, nind=nind, B=B, nD=nD, midpt=midpt,
+str( win.data <- list(ntransects=ntransects, nsites=nsites, nind=nind, B=B, nD=nD, midpt=midpt,
                       delta=delta, ncap=ncap, 
                       searchSpeed=DScovs$searchSpeed[,1],
+                      transectLength=DScovs$transectLength,
                       summerWarmth=DScovs$summerWarmth[,1],
                       precip=DScovs$precip[,1],
                       januaryMinTemp=DScovs$januaryMinTemp[,1],
@@ -186,6 +190,7 @@ str( win.data <- list(nsites=nsites, nind=nind, B=B, nD=nD, midpt=midpt,
                       roughness=DScovs$roughness[,1],
                       northness=DScovs$northness[,1],
                       dclass=dclass,
+                      transect=transect,
                       site=site) )
 
 save(win.data, DSdata, DScovs, file = "./data/DSdata.RData")
