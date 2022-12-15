@@ -45,6 +45,7 @@ for(i in 1:length(colType)){
   }
 }
 
+
 # Part 2: Explore and cleanup the covariate data  -------------------------------------------------------------
 # Transect-level covariates
 head(transect.covs)
@@ -71,7 +72,9 @@ covs.cor <- transect.covs %>%
   select(latitude, longitude, tempc, windms, day.of.year, dist.road, lowshrub, tallshrub, talus, 
          eds, aspect, wetness, elevation, slope, roughness, exposure, heatload, relief, position,
          radiation, evi2, nbr, ndmi, ndsi, ndvi, ndwi, precip, summerWarmth, januaryMinTemp, logs, 
-         search.time, trans.length, start.hr, veg.height, lowshrub.cover, shrubCover, northness, eastness)
+         search.time, t.length, start.hr, 
+         #veg.height, lowshrub.cover, shrubCover, 
+         northness, eastness)
 
 cor <- cor(covs.cor, use="pairwise")
 
@@ -119,29 +122,34 @@ tail(pika.obs.alltrans)  #yes, looks like we've tacked on the transects where no
 # Part 3: Format the observation data for JAGS  ------------------------------------------------------------
 
 
-obsCovData <- left_join(transect.covs, pika.obs.alltrans, by = c("Site", "transect")) %>% 
+obsCovData <- left_join(transect.covs, pika.obs.alltrans, by = "transect") %>% 
   select(-'compare.transcovs.obs$transect', -'Location.y', -'Observer.y', -'observer.y')
 
-obsCovData <- obsCovData %>% 
-                filter(Count == 3) %>%
-                slice(rep(1:n(), each = 2)) %>% 
-                bind_rows(obsCovData) %>% 
-                mutate(Count = replace(Count, Count == 3, 1))
+saveRDS(obsCovData, "./data/obsCovData.RData")
 
-DSdata <- data.frame(site = as.character(obsCovData$Site),
-                     transect = as.character(obsCovData$transect),
+# obsCovData <- obsCovData %>% 
+#                 filter(Count == 3) %>%
+#                 slice(rep(1:n(), each = 2)) %>% 
+#                 bind_rows(obsCovData) %>% 
+#                 mutate(Count = replace(Count, Count == 3, 1))
+
+DSdata <- data.frame(Site = as.character(obsCovData$Site),
+                     site = as.numeric(obsCovData$Site),
+                     Transect = as.character(obsCovData$transect),
+                     transect = NA,
                      y = obsCovData$Count,
                      perp.dist = obsCovData$perp.dist)
 
 # Order DS data and transect covariates to ensure correct order in analysis
 DSdata <- DSdata %>% 
-  arrange(transect)
-transect.covs <- transect.covs %>% 
-  arrange(transect)
+  arrange(site)
+transect.covs <- transect.covs %>%
+  mutate(site = as.numeric(Site)) %>% 
+  arrange(site)
 
 # Get number of individuals detected per site
 # ncap = 1 plus number of detected individuals per site
-ncap <- table(DSdata[,2])            # ncap = 1 if no individuals captured
+ncap <- table(DSdata[,c(2,5)])            # ncap = 1 if no individuals captured
 sites0 <- DSdata[is.na(DSdata[,3]),][,2] # sites where nothing detected
 ncap[as.character(sites0)] <- 0    # Fill in 0 for sites with no detections
 ncap <- as.vector(ncap)
@@ -159,6 +167,15 @@ nind <- length(dclass)             # Total number of individuals detected
 ntransects <- length(unique(DSdata$transect)) # Total number of sites
 nsites <- length(unique(DSdata$site))
 
+# Get max number of transects per site
+tPerSite <- data.frame(site = unique(DSdata$site),
+                       transects = rep(NA,47))
+sites <- unique(DSdata$site)
+for(i in 1:length(sites)){
+  a <- DSdata[DSdata["site"]==sites[i],]
+  tPerSite$transects[i] <- length(unique(a$transect))
+}
+
 # Prepare covariate data
 DScovs <- list(
               searchSpeed=scale(transect.covs$search.speed),
@@ -173,6 +190,8 @@ DScovs <- list(
               Site=as.numeric(as.factor(transect.covs$Site)),
               roughness=scale(transect.covs$roughness),
               northness=scale(transect.covs$northness))
+
+y4d <- array(0,dim=c(nsites,nD,))
 
 # Bundle and summarize data set
 str( win.data <- list(ntransects=ntransects, nsites=nsites, nind=nind, B=B, nD=nD, midpt=midpt,

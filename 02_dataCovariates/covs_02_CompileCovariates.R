@@ -224,7 +224,21 @@ transect.covs <- transect.covs %>%
 
 # Make sure that we have successfully created the observer field with 5 levels to match the same levels used in 
 # the observation data. We have 6 here because we want to keep track of the site.observer pairs that don't exist.
-unique(transect.covs$observer)  
+unique(transect.covs$observer)
+
+##### REMOVE JBER REPLICATES (CB & PS) UNTIL SPATIAL DATA IS FOUND) ######
+
+transect.covs <- transect.covs %>% 
+  filter(!(((Site == 'JB01' & Observer == 'CB') |
+              (Site == 'JB01' & Observer == 'PS') |
+              (Site == 'JB02' & Observer == 'CB') |
+              (Site == 'JB02' & Observer == 'PS'))))
+
+##### RECODE SITES TO MATCH TRACKS #####
+
+transect.covs <- transect.covs %>% 
+  mutate(Site = gsub('A','', Site)) %>% 
+  mutate(Site = recode(Site, "Polychrome" = "PC"))
 
 # Now, let's create the 'transect' field in the same manner that we did for the observation data and
 # the transect lenghts.
@@ -262,12 +276,10 @@ transect.covs <- transect.covs %>%
 head(transect.covs)
 unique(transect.covs$transect)  #there are 119 unique transects so no redundancies
 
+
 # Part 8: Add in the transect lengths and search effort  ----------------------------------------------------------------
 # First, read in the cleaned pika tracks from the data management script
-source("01_dataSurveys/data_02_GPStracks.r")
-
-# Need to join transect lengths and search effort to the transect-level covariates
-pika.tracks
+pika.tracks <- readRDS("./data/tracks.RData")
 
 # Let's arrange them alphabetically for quick inspection
 (pika.tracks <- pika.tracks %>% 
@@ -276,42 +288,42 @@ pika.tracks
 
 # Compare the transect length and search speed info with the transect - level covariates and see if anything missing.
 
-(compare.transect.covs.pika.tracks <- anti_join(transect.covs, pika.tracks, by="transect"))  # no issues
-(compare.transect.covs.pika.tracks <- anti_join(pika.tracks, transect.covs, by="transect"))   # no issues
+(compare.transect.covs.pika.tracks <- anti_join(transect.covs, pika.tracks, by= c("transect" = "Transect")))  # no issues
+(compare.transect.covs.pika.tracks <- anti_join(pika.tracks, transect.covs, by= c("Transect" = "transect")))   # no issues
 
 # Add the covariates from the pika.tracks dataframe to the transect.covs dataframe
 transect.covs <- transect.covs %>% 
-  left_join(pika.tracks, by = "transect")
+  left_join(pika.tracks, by = c("transect" = "Transect"))
 
 # View the transect-level covariates with transect length and search speed
 transect.covs
 summary(transect.covs)  #looking pretty good. Just need to clarify some of these mismatches and NA's.
 
-# Part 9: Fill in NAs in '% EDS'   ----------------------------------------------------------------------------------------
-
-# Fill in NA's with mean value for EDS
-
-eds.mean <- mean(transect.covs$eds, na.rm = TRUE)
-
-transect.covs$eds <- replace(transect.covs$eds, is.na(transect.covs$eds), eds.mean)
-
-# Part 10: Add in other vegetation covariates -------------------------------------------------------------
-source("02_dataCovariates/covs_01_VegSurveys.r")
-
-# Add in dominant vegetation within 50m of the talus
-transect.covs <- left_join(transect.covs, domVeg, by = "Site")
-
-# Add in mean vegetation height from 10x10m veg plots
-transect.covs <- left_join(transect.covs, veg.height, by = "Site")
-
-# Add in percent cover of lowshrub from 10x10m veg plots
-transect.covs <- left_join(transect.covs, lowshrub, by = "Site")
-
-# Add in total shrub cover within plot
-shrub <- read.csv("./data/percentShrub.csv") %>% 
-  select(Site, PERCENTAGE) %>% 
-  rename(shrubCover=PERCENTAGE)
-transect.covs <- left_join(transect.covs, shrub, by = "Site")
+# # Part 9: Fill in NAs in '% EDS'   ----------------------------------------------------------------------------------------
+# 
+# # Fill in NA's with mean value for EDS
+# 
+# eds.mean <- mean(transect.covs$eds, na.rm = TRUE)
+# 
+# transect.covs$eds <- replace(transect.covs$eds, is.na(transect.covs$eds), eds.mean)
+# 
+# # Part 10: Add in other vegetation covariates -------------------------------------------------------------
+# source("02_dataCovariates/covs_01_VegSurveys.r")
+# 
+# # Add in dominant vegetation within 50m of the talus
+# transect.covs <- left_join(transect.covs, domVeg, by = "Site")
+# 
+# # Add in mean vegetation height from 10x10m veg plots
+# transect.covs <- left_join(transect.covs, veg.height, by = "Site")
+# 
+# # Add in percent cover of lowshrub from 10x10m veg plots
+# transect.covs <- left_join(transect.covs, lowshrub, by = "Site")
+# 
+# # Add in total shrub cover within plot
+# shrub <- read.csv("./data/percentShrub.csv") %>% 
+#   select(Site, PERCENTAGE) %>% 
+#   rename(shrubCover=PERCENTAGE)
+# transect.covs <- left_join(transect.covs, shrub, by = "Site")
 
 # Part 11: Convert aspect to meaningful variables ----------------------------------
 
