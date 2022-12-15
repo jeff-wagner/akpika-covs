@@ -33,23 +33,24 @@ model{
 
   for(s in 1:ntransects){     # loop through transects
     # Construct cell probabilities for nD multinomial cells
+    for(k in 1:nreps[s]) # reps per site
     for(g in 1:nD){                 # loop through each distance class
-      log(p[s,g]) <- -midpt[g] * midpt[g] / (2*sigma[s]*sigma[s])   # midpt = mid-point of each cell
-      pi[s,g] <- delta / B          # probability per interval
-      f[s,g] <- p[s,g] * pi[s,g]
-      fc[s,g] <- f[s,g] / pcap[s]
+      log(p[s,g,k]) <- -midpt[g] * midpt[g] / (2*sigma[s]*sigma[s])   # midpt = mid-point of each cell
+      pi[s,g,k] <- delta / B          # probability per interval, feed 3D array of expected proportions of pika/nD per site, per rep, per distance class
+      f[s,g,k] <- p[s,g,k] * pi[s,g,k]
+      fc[s,g,k] <- f[,k] / pcap[s,k]
     }
-    pcap[s] <- sum(f[s,])           # Pr(capture): sum of rectangular areas
+    pcap[s,k] <- sum(f[s,1:nD,k])           # Pr(capture): sum of rectangular areas
 
-    ncap[s] ~ dbin(pcap[s], N[s])   # Part 2 of HM
+    ncap[s,k] ~ dbin(pcap[s], N[s])   # Part 2 of HM
     
     # OFFSET TERM - This is where I need help
-    N[s] ~ dpois(lambda.abs[s])         # Part 3 of HM
+    N[s,k] ~ dpois(lambda.abs[s])         # Part 3 of HM
   
     # Do I need to use site area here instead of transect length (which is in m, so I convert to km)?
     lambda.abs[s] <- lambda[s]*(transectLength[s]/1000) # lambda is a site density in indiviudals per sq km, lambda.abs is the number of expected per km surveyed?
     log(lambda[s]) <- beta0 + beta1 * summerWarmth[s] + site.eff[s] # linear model abundance w/ random effect of site
-    log(sigma[s])<- alpha0 + alpha1*searchSpeed[s]      # linear model detection
+    log(sigma[s])<- alpha0 + alpha1*searchSpeed[s,k]      # linear model detection, ADD k loop for SS per replicate
     
     site.eff[s] ~ dnorm(0, tau) # random effect of site
     

@@ -9,10 +9,10 @@ model{
   tau <- 1/(sigma.site*sigma.site)
 
   for(i in 1:nind){ # Loop through all individuals
-    dclass[i] ~ dcat(fc[site[i],]) # Part 1 of HM, distance class of each ind. ~ cat(cell prob. vector)
+    dclass[i] ~ dcat(fc[transect[i],]) # Part 1 of HM, distance class of each ind. ~ cat(cell prob. vector)
   }
 
-  for(s in 1:nsites){     # loop through sites
+  for(s in 1:ntransects){     # loop through transects
     # Construct cell probabilities for nD multinomial cells
     for(g in 1:nD){                 # loop through each distance class
       log(p[s,g]) <- -midpt[g] * midpt[g] / (2*sigma[s]*sigma[s])   # midpt = mid-point of each cell
@@ -23,16 +23,22 @@ model{
     pcap[s] <- sum(f[s,])           # Pr(capture): sum of rectangular areas
 
     ncap[s] ~ dbin(pcap[s], N[s])   # Part 2 of HM
-    N[s] ~ dpois(lambda[s])         # Part 3 of HM
+    
+    # OFFSET TERM - This is where I need help
+    N[s] ~ dpois(lambda.abs[s])         # Part 3 of HM
+  
+    # Do I need to use site area here instead of transect length (which is in m, so I convert to km)?
+    lambda.abs[s] <- lambda[s]*(transectLength[s]/1000) # lambda is a site density in indiviudals per sq km, lambda.abs is the number of expected per km surveyed?
     log(lambda[s]) <- beta0 + beta1 * summerWarmth[s] + site.eff[s] # linear model abundance w/ random effect of site
     log(sigma[s])<- alpha0 + alpha1*searchSpeed[s]      # linear model detection
     
     site.eff[s] ~ dnorm(0, tau) # random effect of site
     
   }
+  
   # Derived parameters
   
-  # for(j in 1:max(Site)){
+  # for(j in 1:nsites)){
   #         Nsite[j] <- N[]
   # }
 
