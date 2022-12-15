@@ -26,11 +26,11 @@ unique(pika.obs.t$transect)
 dim(pika.obs.t)           #185 pika observations
 
 
-#Truncate data at 100m since there are few observations beyond that
+#Truncate data at 70m since there are few observations beyond that
 pika.obs.tr <- pika.obs.t %>% 
-  filter(perp.dist < 100)
+  filter(perp.dist < 70)
 
-dim(pika.obs.tr)        #Now have 182 observations; removed 3 observations (1.6% of the data) 
+dim(pika.obs.tr)        #Now have 176 observations; removed 9 observations (4.9% of the data) 
 hist(pika.obs.tr$perp.dist)
 
 summary(pika.obs.tr)
@@ -50,6 +50,10 @@ for(i in 1:length(colType)){
 # Transect-level covariates
 head(transect.covs)
 summary(transect.covs)
+
+transect.covs <- transect.covs %>% 
+  rename("Site"="Site.x") %>% 
+  mutate("site"=as.numeric(as.factor(Site)))
 
 # Convert character columns to factors
 
@@ -86,9 +90,9 @@ topoCor <- cor(topoCovs, use = "pairwise")
 
 # Visualize correlations: only slope and roughness are highly correlated (r=0.85)
 # Anything > 0.60 or < -0.60 we considered correlated and won't consider in same model
-library(psych)
-pairs.panels(covs.cor,ellipses = F)  
-pairs.panels(topoCor, ellipses = F)
+# library(psych)
+# pairs.panels(covs.cor,ellipses = F)  
+# pairs.panels(topoCor, ellipses = F)
 
 cor[which(cor > 0.6)]
 which(cor > 0.6 | cor < -0.6)
@@ -118,101 +122,122 @@ head(pika.obs.alltrans)  #view a table to see that the 50 transects were tacked 
 dim(pika.obs.alltrans)   #we've gone from 182 observations to 230 indicating we've added 48 rows.
 tail(pika.obs.alltrans)  #yes, looks like we've tacked on the transects where no pika observed.
 
+# Site Covariates
+
+siteCovs <- transect.covs[!duplicated(transect.covs["Site"]),]
 
 # Part 3: Format the observation data for JAGS  ------------------------------------------------------------
 
 
-obsCovData <- left_join(transect.covs, pika.obs.alltrans, by = "transect") %>% 
-  select(-'compare.transcovs.obs$transect', -'Location.y', -'Observer.y', -'observer.y')
+obsCovData <- left_join(transect.covs, pika.obs.alltrans, by = c("Site"="Site", "transect")) %>% 
+  select(-'compare.transcovs.obs$transect', -'Location.y', -'Observer.y', -'observer.y', -'Site.y') %>% 
+  rename("Location" = "Location.x", "Observer" = "Observer.x", "observer" = "observer.x",
+         "Transect" = "transect.y")
 
-saveRDS(obsCovData, "./data/obsCovData.RData")
+# saveRDS(obsCovData, "./data/obsCovData.RData")
 
-# obsCovData <- obsCovData %>% 
-#                 filter(Count == 3) %>%
-#                 slice(rep(1:n(), each = 2)) %>% 
-#                 bind_rows(obsCovData) %>% 
-#                 mutate(Count = replace(Count, Count == 3, 1))
+obsCovData <- obsCovData %>%
+                filter(Count == 3) %>%
+                slice(rep(1:n(), each = 2)) %>%
+                bind_rows(obsCovData) %>%
+                mutate(Count = replace(Count, Count == 3, 1))
 
 DSdata <- data.frame(Site = as.character(obsCovData$Site),
                      site = as.numeric(obsCovData$Site),
-                     Transect = as.character(obsCovData$transect),
-                     transect = NA,
+                     lat = obsCovData$latitude,
+                     lon = obsCovData$longitude,
+                     Transect = as.character(obsCovData$Transect),
+                     replicate = obsCovData$replicate,
+                     t.length = obsCovData$t.length,
+                     search.speed = obsCovData$search.speed,
                      y = obsCovData$Count,
                      perp.dist = obsCovData$perp.dist)
 
-# Order DS data and transect covariates to ensure correct order in analysis
-DSdata <- DSdata %>% 
-  arrange(site)
-transect.covs <- transect.covs %>%
-  mutate(site = as.numeric(Site)) %>% 
-  arrange(site)
+
+# # Order DS data and transect covariates to ensure correct order in analysis
+# DSdata <- DSdata %>% 
+#   arrange(site)
+# transect.covs <- transect.covs %>%
+#   mutate(site = as.numeric(Site)) %>% 
+#   arrange(site)
 
 # Get number of individuals detected per site
 # ncap = 1 plus number of detected individuals per site
-ncap <- table(DSdata[,c(2,5)])            # ncap = 1 if no individuals captured
-sites0 <- DSdata[is.na(DSdata[,3]),][,2] # sites where nothing detected
-ncap[as.character(sites0)] <- 0    # Fill in 0 for sites with no detections
-ncap <- as.vector(ncap)
+# ncap <- table(DSdata[,c(2,5)])            # ncap = 1 if no individuals captured
+# sites0 <- DSdata[is.na(DSdata[,3]),][,2] # sites where nothing detected
+# ncap[as.character(sites0)] <- 0    # Fill in 0 for sites with no detections
+# ncap <- as.vector(ncap)
+# 
+# # Prepare other data
+# B = round(max(DSdata$perp.dist, na.rm = TRUE))+2 # rounded max detection distance
+# transect <- as.numeric(as.factor(DSdata[!is.na(DSdata[,3]),2]))   # site ID of each observation
+# site <- as.numeric(as.factor(DSdata[!is.na(DSdata[,3]),1]))
+# delta <- 5                         # distance bin width for rect. approx.
+# midpt <- seq(delta/2, B, delta)    # make mid-points and chop up data
+# dclass <- DSdata[,4] %/% delta + 1   # convert distances to cat. distances
+# nD <- length(midpt)                # Number of distance intervals
+# dclass <- dclass[!is.na(DSdata[,3])] # Observed categorical observations
+# nind <- length(dclass)             # Total number of individuals detected
+# ntransects <- length(unique(DSdata$transect)) # Total number of sites
+# nsites <- length(unique(DSdata$site))
+# 
+# # Get max number of transects per site
+# tPerSite <- data.frame(site = unique(DSdata$site),
+#                        transects = rep(NA,47))
+# sites <- unique(DSdata$site)
+# for(i in 1:length(sites)){
+#   a <- DSdata[DSdata["site"]==sites[i],]
+#   tPerSite$transects[i] <- length(unique(a$transect))
+# }
 
-# Prepare other data
-B = round(max(DSdata$perp.dist, na.rm = TRUE))+2 # rounded max detection distance
-transect <- as.numeric(as.factor(DSdata[!is.na(DSdata[,3]),2]))   # site ID of each observation
-site <- as.numeric(as.factor(DSdata[!is.na(DSdata[,3]),1]))
-delta <- 5                         # distance bin width for rect. approx.
-midpt <- seq(delta/2, B, delta)    # make mid-points and chop up data
-dclass <- DSdata[,4] %/% delta + 1   # convert distances to cat. distances
-nD <- length(midpt)                # Number of distance intervals
-dclass <- dclass[!is.na(DSdata[,3])] # Observed categorical observations
-nind <- length(dclass)             # Total number of individuals detected
-ntransects <- length(unique(DSdata$transect)) # Total number of sites
-nsites <- length(unique(DSdata$site))
+# Prepare site level covariate data
+DSsiteCovs <- list(summerWarmth=scale(siteCovs$summerWarmth),
+              precip=scale(siteCovs$precip),
+              januaryMinTemp=scale(siteCovs$januaryMinTemp),
+              ndvi=scale(siteCovs$ndvi),
+              logs=scale(siteCovs$logs),
+              elevation=scale(siteCovs$elevation),
+              latitude=scale(siteCovs$latitude),
+              Site=as.numeric(as.factor(siteCovs$Site)),
+              roughness=scale(siteCovs$roughness),
+              northness=scale(siteCovs$northness))
 
-# Get max number of transects per site
-tPerSite <- data.frame(site = unique(DSdata$site),
-                       transects = rep(NA,47))
-sites <- unique(DSdata$site)
-for(i in 1:length(sites)){
-  a <- DSdata[DSdata["site"]==sites[i],]
-  tPerSite$transects[i] <- length(unique(a$transect))
+# Prepare replicate level covariates
+meta <- table(factor(transect.covs$Site, levels = levels(as.factor(transect.covs$Site))),
+                 transect.covs$replicate)
+searchSpeed <- matrix(data = NA, nrow = 47, ncol = 4, dimnames = list(unique(transect.covs$site),
+                                                                    unique(transect.covs$replicate)))
+
+for(s in 1:47){
+  for(k in 1:4){
+    searchSpeed[s,k] <- ifelse(meta[s,k]>0, subset(transect.covs, site == s & replicate == k)$search.speed, 0)
+  }
 }
 
-# Prepare covariate data
-DScovs <- list(
-              searchSpeed=scale(transect.covs$search.speed),
-              transectLength=transect.covs$trans.length,
-              summerWarmth=scale(transect.covs$summerWarmth),
-              precip=scale(transect.covs$precip),
-              januaryMinTemp=scale(transect.covs$januaryMinTemp),
-              ndvi=scale(transect.covs$ndvi),
-              logs=scale(transect.covs$logs),
-              elevation=scale(transect.covs$elevation),
-              latitude=scale(transect.covs$latitude),
-              Site=as.numeric(as.factor(transect.covs$Site)),
-              roughness=scale(transect.covs$roughness),
-              northness=scale(transect.covs$northness))
+DSreplicateCovs <- list(searchSpeed=searchSpeed)
 
-y4d <- array(0,dim=c(nsites,nD,))
+
 
 # Bundle and summarize data set
-str( win.data <- list(ntransects=ntransects, nsites=nsites, nind=nind, B=B, nD=nD, midpt=midpt,
-                      delta=delta, ncap=ncap, 
-                      searchSpeed=DScovs$searchSpeed[,1],
-                      transectLength=DScovs$transectLength,
-                      summerWarmth=DScovs$summerWarmth[,1],
-                      precip=DScovs$precip[,1],
-                      januaryMinTemp=DScovs$januaryMinTemp[,1],
-                      ndvi=DScovs$ndvi[,1],
-                      logs=DScovs$logs[,1],
-                      elevation=DScovs$elevation[,1],
-                      latitude=DScovs$latitude[,1],
-                      Site=DScovs$Site,
-                      roughness=DScovs$roughness[,1],
-                      northness=DScovs$northness[,1],
-                      dclass=dclass,
-                      transect=transect,
-                      site=site) )
+# str( win.data <- list(ntransects=ntransects, nsites=nsites, nind=nind, B=B, nD=nD, midpt=midpt,
+#                       delta=delta, ncap=ncap, 
+#                       searchSpeed=DScovs$searchSpeed[,1],
+#                       transectLength=DScovs$transectLength,
+#                       summerWarmth=DScovs$summerWarmth[,1],
+#                       precip=DScovs$precip[,1],
+#                       januaryMinTemp=DScovs$januaryMinTemp[,1],
+#                       ndvi=DScovs$ndvi[,1],
+#                       logs=DScovs$logs[,1],
+#                       elevation=DScovs$elevation[,1],
+#                       latitude=DScovs$latitude[,1],
+#                       Site=DScovs$Site,
+#                       roughness=DScovs$roughness[,1],
+#                       northness=DScovs$northness[,1],
+#                       dclass=dclass,
+#                       transect=transect,
+#                       site=site) )
 
-save(win.data, DSdata, DScovs, file = "./data/DSdata.RData")
+save(obsCovData, DSdata, DSsiteCovs, DSreplicateCovs, file = "./data/DSData.RData")
 
 # # Data augmentation: add a bunch of "pseudo-individuals"
 # nz <- 500                        # Augment by 500
