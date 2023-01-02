@@ -21,13 +21,13 @@ sp_folder = paste(data_folder,
 
 # List input files
 sp_data <- st_layers(sp_folder)
-files <- sp_data$name[c(233:261,263:348)]
+files <- sp_data$name[grep(".Clip",sp_data$name)][c(1:32,34:120)]
 
 # Read in multiple ring buffer feature classes
 buffers <- lapply(files, st_read, dsn=sp_folder)
 
 # Define names
-names(buffers) <- sapply(strsplit(files, "_"), function(x) paste(x[2],x[3], sep = "_"))
+names(buffers) <- sapply(strsplit(sapply(strsplit(files, "s"), function(x) paste(x[2])), "_"), function(x) paste(x[1],x[2], sep = "_"))
 buffers <- buffers[order(names(buffers))] 
 tracks <- readRDS("./data/tracks.RData") # Read in track data to find matches
 names(buffers) == tracks$t.match # Check that everything matches
@@ -51,7 +51,7 @@ df <- plyr::ldply(buffers) %>%
 
 
 testarr <- table(factor(df$site, levels = levels(as.factor(df$site))),
-                 df$dclass~, df$replicate)
+                 df$dclass, df$replicate)
 
 nsites <- 47
 nD <- 13
@@ -59,13 +59,13 @@ K <- 4
 
 pi3d<-array(data=NA, dim=c(nsites, nD, K))
 
-for(k in 1:K){
-  for(d in 1:nD){
-    for(s in 1:nsites){
-      pi3d[s,d,k] <- ifelse(!is.na(subset(df, Site == s & dclass == d & replicate == k)$p.area), subset(df, Site == s & dclass == d & replicate == k)$p.area, NA)
-    }
-  }
-}
+# for(k in 1:K){
+#   for(d in 1:nD){
+#     for(s in 1:nsites){
+#       pi3d[s,d,k] <- ifelse(!is.na(subset(df, Site == s & dclass == d & replicate == k)$p.area), subset(df, Site == s & dclass == d & replicate == k)$p.area, NA)
+#     }
+#   }
+# }
 
 for(s in 1:nsites){
   for(d in 1:nD){

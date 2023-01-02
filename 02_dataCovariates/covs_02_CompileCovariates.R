@@ -226,13 +226,6 @@ transect.covs <- transect.covs %>%
 # the observation data. We have 6 here because we want to keep track of the site.observer pairs that don't exist.
 unique(transect.covs$observer)
 
-##### REMOVE JBER REPLICATES (CB & PS) UNTIL SPATIAL DATA IS FOUND) ######
-
-transect.covs <- transect.covs %>% 
-  filter(!(((Site == 'JB01' & Observer == 'CB') |
-              (Site == 'JB01' & Observer == 'PS') |
-              (Site == 'JB02' & Observer == 'CB') |
-              (Site == 'JB02' & Observer == 'PS'))))
 
 ##### RECODE SITES TO MATCH TRACKS #####
 

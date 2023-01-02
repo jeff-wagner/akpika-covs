@@ -109,13 +109,6 @@ head(pika.obs.t)
 # Check to make sure we only have AD, JW, T1, T2, and ACCS as the 5 options.
 unique(pika.obs.t$observer)
 
-##### REMOVE JBER REPLICATES (CB & PS) UNTIL SPATIAL DATA IS FOUND) ######
-
-pika.obs.t <- pika.obs.t %>% 
-  filter(!(((Site == 'JB01' & Observer == 'CB') |
-              (Site == 'JB01' & Observer == 'PS') |
-              (Site == 'JB02' & Observer == 'CB') |
-              (Site == 'JB02' & Observer == 'PS'))))
 
 ##### RECODE SITES TO MATCH TRACKS #####
 

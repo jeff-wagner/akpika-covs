@@ -27,10 +27,6 @@ pika.tracks <- as.data.frame(pika.tracks)
 pika.tracks <- pika.tracks %>%
   filter(!((Site == "TOK") | 
              (Site == 'P138' & Observer == 'AD') |
-             (Site == 'JB01' & Observer == 'CB') |
-             (Site == 'JB01' & Observer == 'PS') |
-             (Site == 'JB02' & Observer == 'CB') |
-             (Site == 'JB02' & Observer == 'PS') |
              (Date == "2018-09-28")))
 
 
@@ -56,7 +52,7 @@ unique(tracks$Observer)
 tracks <- tracks %>% 
   mutate(observer = Observer) %>%  
   mutate(observer = recode(observer, 'AD' = 'AD', 'AD,RK' = 'AD', 'JW' = 'JW', 'JW,AD' = 'JW', 
-                           'KC,SG,CB,JW,PS' = 'ACCS', 'LS' = 'T1', 'LS,LT' = 'T1', 'LT' = 'T2', 
+                           'KC,SG,CB,JW,PS' = 'ACCS', 'CB' = 'T1', 'LS' = 'T1', 'LS,LT' = 'T1', 'LT' = 'T2', 
                            'PS' = 'ACCS', 'PS,RK' = 'ACCS','RK' = 'ACCS'))
 unique(tracks$observer)
 
