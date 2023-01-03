@@ -12,10 +12,11 @@ drive = 'C:'
 root_folder = 'Users/jeffw/Dropbox/Pika'
 
 # Define data folder
-data_folder = paste(drive,
-                    root_folder,
-                    'GISdata',
-                    sep ='/')
+# data_folder = paste(drive,
+#                     root_folder,
+#                     'GISdata',
+#                     sep ='/')
+data_folder = 'C:/Users/jeffw/OneDrive/Desktop/GISdata'
 
 # Define input folders
 site_folder = paste(data_folder,
@@ -42,7 +43,7 @@ growingSeason_folder = paste(data_folder,
 
 # Define input site metadata
 site_file = paste(site_folder,
-                  'pikaSites_Buffer.shp',
+                  'pikaSites_50mBuffer.shp',
                   sep = '/')
 
 # Import required libraries for geospatial processing: dplyr, raster, rgdal, sp, and stringr.
@@ -159,7 +160,7 @@ for (grid in grid_list) {
 
   # Summarize data by site
   sites_mean = sites_extracted %>%
-    group_by(Site) %>%
+    group_by(SiteID) %>%
     summarize(aspect = round(mean(aspect), digits = 0),
               wetness = round(mean(wetness), digits = 0),
               elevation = round(mean(elevation), digits = 0),
@@ -193,8 +194,9 @@ sites_combined = bind_rows(data_list)
 
 # Join site metadata to extracted data and remove na values
 sites_joined = site_metadata %>%
-  inner_join(sites_combined, by = 'Site') %>%
-  drop_na()
+  inner_join(sites_combined, by = 'SiteID') %>%
+  drop_na() %>% 
+  rename('Site' = 'SiteID')
 
 # Export data as a csv
 output_csv = paste(site_folder, 'sites_extracted.csv', sep = '/')
