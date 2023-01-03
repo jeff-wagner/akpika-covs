@@ -21,7 +21,8 @@ sp_folder = paste(data_folder,
 
 # List input files
 sp_data <- st_layers(sp_folder)
-files <- sp_data$name[grep(".Clip",sp_data$name)][c(1:32,34:120)]
+files <- sp_data$name[grep(".Clip",sp_data$name)] %>% 
+  subset(. != "PikaTracksP080_U20_MRBuffer_Clip") # Remove P080 (not actually surveyed)
 
 # Read in multiple ring buffer feature classes
 buffers <- lapply(files, st_read, dsn=sp_folder)
