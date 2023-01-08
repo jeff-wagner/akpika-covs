@@ -40,21 +40,33 @@ precipitation_folder = paste(data_folder,
 growingSeason_folder = paste(data_folder,
                              'climatology/logs/gridded',
                              sep = '/')
+ftc_folder = paste(data_folder,
+                   'climatology/ftc/gridded',
+                   sep = '/')
+snowdepth_folder = paste(data_folder,
+                             'climatology/snowdepth/gridded',
+                             sep = '/')
+snowmelt_folder = paste(data_folder,
+                   'climatology/snowmelt/gridded',
+                   sep = '/')
+snowextent_folder = paste(data_folder,
+                        'climatology/snowextent/gridded',
+                        sep = '/')
+
 
 # Define input site metadata
 site_file = paste(site_folder,
                   'pikaSites_50mBuffer.shp',
                   sep = '/')
 
-# Import required libraries for geospatial processing: dplyr, raster, rgdal, sp, and stringr.
+# Import required libraries for geospatial processing: dplyr, terra, sf, and stringr.
 library(dplyr)
-library(raster)
-library(rgdal)
-library(sp)
+library(terra)
+library(sf)
 library(stringr)
 
 # Read site metadata into dataframe
-site_metadata = readOGR(dsn = site_file)@data
+site_metadata = values(vect(site_file))
 
 # Generate a list of parsed site points
 grid_list = list.files(parsed_folder, pattern='shp$', full.names=FALSE)
@@ -82,6 +94,10 @@ for (grid in grid_list) {
   temperature_grid = paste(temperature_folder, grid_folder, sep = '/')
   precipitation_grid = paste(precipitation_folder, grid_folder, sep = '/')
   growingSeason_grid = paste(growingSeason_folder, grid_folder, sep = '/')
+  ftc_grid = paste(ftc_folder, grid_folder, sep = '/')
+  snowdepth_grid = paste(snowdepth_folder, grid_folder, sep = '/')
+  snowmelt_grid = paste(snowmelt_folder, grid_folder, sep = '/')
+  snowextent_grid = paste(snowextent_folder, grid_folder, sep = '/')
 
   
   # Create a list of all predictor rasters
@@ -90,20 +106,37 @@ for (grid in grid_list) {
   predictors_temperature = list.files(temperature_grid, pattern = 'tif$', full.names = TRUE)
   predictors_precipitation = list.files(precipitation_grid, pattern = 'tif$', full.names = TRUE)
   predictors_growingSeason = list.files(growingSeason_grid, pattern = 'tif$', full.names = TRUE)
+  predictors_ftc = list.files(ftc_grid, pattern = 'tif$', full.names = TRUE)
+  predictors_snowdepth = list.files(snowdepth_grid, pattern = 'tif$', full.names = TRUE)
+  predictors_snowmelt = list.files(snowmelt_grid, pattern = 'tif$', full.names = TRUE)
+  predictors_snowextent = list.files(snowextent_grid, pattern = 'tif$', full.names = TRUE)
   predictors_all = c(predictors_topography,
                      predictors_sentinel2,
                      predictors_temperature,
                      predictors_precipitation,
-                     predictors_growingSeason)
+                     predictors_growingSeason,
+                     predictors_ftc,
+                     predictors_snowdepth,
+                     predictors_snowmelt,
+                     predictors_snowextent)
   print("Number of predictor rasters:")
   print(length(predictors_all))
   
   # Generate a stack of all predictor rasters
-  predictor_stack = stack(predictors_all)
+  predictor_stack = rast(predictors_all)
+  
+  # Fix topography layer names
+  sources <- sources(rast(predictors_topography))
+  string_match1 <- paste(grid_name, "/", sep = "")
+  string_match2 <- paste(".tif", sep = "")
+  
+  names(predictor_stack)[1:11] <- str_match(sources, paste(string_match1, "(.*?)", string_match2, sep = ""))[,2]
   
   # Read site data and extract features
-  site_data = readOGR(dsn = grid_sites)
-  extracted = extract(predictor_stack, site_data, fun = "mean")
+  site_data = vect(grid_sites)
+  extracted = terra::extract(predictor_stack, site_data, fun = "mean", na.rm = TRUE,
+                             weights = TRUE,
+                             bind=TRUE)
   
   # Ensure all elements in the extracted list are the same length
   # for(i in 1:length(extracted)){
@@ -115,7 +148,7 @@ for (grid in grid_list) {
   #     print(paste(nrow, "rows added to element", i, sep = " "))
   #   }
   # }
-  sites_extracted = data.frame(site_data@data, extracted)
+  sites_extracted = data.frame(values(site_data), extracted)
   
   # Convert field names to standard
   sites_extracted = sites_extracted %>%
@@ -156,31 +189,39 @@ for (grid in grid_list) {
     rename(summerWarmth = paste('SummerWarmth_MeanAnnual_AKALB_', grid_name, sep = '')) %>%
     rename(januaryMinTemp = paste("January_MinimumTemperature_AKALB_", grid_name, sep = '')) %>% 
     rename(precip = paste('Precipitation_MeanAnnual_AKALB_', grid_name, sep = '')) %>% 
-    rename(logs = paste('LengthOfGrowingSeason_AKALB_', grid_name, sep = ''))
+    rename(logs = paste('LengthOfGrowingSeason_AKALB_', grid_name, sep = '')) %>% 
+    rename(ftc = paste('FreezeThawCycles_MeanAnnual_AKALB_', grid_name, sep = '')) %>% 
+    rename(snowDepth = paste('ABoVE_SnowDepth_MeanWinter_AKALB_', grid_name, sep = '')) %>% 
+    rename(snowMeltCycles = paste('ABoVE_SnowMelt_MeanWinter_AKALB_', grid_name, sep = '')) %>% 
+    rename(snowExtentCycles = paste('ABoVE_SnowExtent_MeanWinter_AKALB_', grid_name, sep = ''))
 
   # Summarize data by site
   sites_mean = sites_extracted %>%
     group_by(SiteID) %>%
-    summarize(aspect = round(mean(aspect), digits = 0),
-              wetness = round(mean(wetness), digits = 0),
-              elevation = round(mean(elevation), digits = 0),
-              slope = round(mean(slope), digits = 0),
-              roughness = round(mean(roughness), digits = 0),
-              exposure = round(mean(exposure), digits = 0),
-              heatload = round(mean(heatload), digits = 0),
-              relief = round(mean(relief), digits = 0),
-              position = round(mean(position), digits = 0),
-              radiation = round(mean(radiation), digits = 0),
-              evi2 = round(mean(evi2_06+evi2_07+evi2_08+evi2_09), digits = 0),
-              nbr = round(mean(nbr_06+nbr_07+nbr_08+nbr_09), digits = 0),
-              ndmi = round(mean(ndmi_06+ndmi_07+ndmi_08+ndmi_09), digits = 0),
-              ndsi = round(mean(ndsi_06+ndsi_07+ndsi_08+ndsi_09), digits = 0),
-              ndvi = round(mean(ndvi_06+ndvi_07+ndvi_08+ndvi_09), digits = 0),
-              ndwi = round(mean(ndwi_06+ndwi_07+ndwi_08+ndwi_09), digits = 0),
-              precip = round(mean(precip), digits = 0),
-              summerWarmth = round(mean(summerWarmth), digits = 0),
-              januaryMinTemp = round(mean(januaryMinTemp), digits = 0),
-              logs = round(mean(logs), digits = 0))
+    summarize(aspect = round(mean(aspect), digits = 1),
+              wetness = round(mean(wetness), digits = 1),
+              elevation = round(mean(elevation), digits = 1),
+              slope = round(mean(slope), digits = 1),
+              roughness = round(mean(roughness), digits = 1),
+              exposure = round(mean(exposure), digits = 1),
+              heatload = round(mean(heatload), digits = 1),
+              relief = round(mean(relief), digits = 1),
+              position = round(mean(position), digits = 1),
+              radiation = round(mean(radiation), digits = 1),
+              evi2 = round(mean(evi2_06+evi2_07+evi2_08+evi2_09), digits = 1),
+              nbr = round(mean(nbr_06+nbr_07+nbr_08+nbr_09), digits = 1),
+              ndmi = round(mean(ndmi_06+ndmi_07+ndmi_08+ndmi_09), digits = 1),
+              ndsi = round(mean(ndsi_06+ndsi_07+ndsi_08+ndsi_09), digits = 1),
+              ndvi = round(mean(ndvi_06+ndvi_07+ndvi_08+ndvi_09), digits = 1),
+              ndwi = round(mean(ndwi_06+ndwi_07+ndwi_08+ndwi_09), digits = 1),
+              precip = round(mean(precip), digits = 1),
+              summerWarmth = round(mean(summerWarmth), digits = 1),
+              januaryMinTemp = round(mean(januaryMinTemp), digits = 1),
+              logs = round(mean(logs), digits = 1),
+              ftc = round(mean(ftc), digits = 1),
+              snowDepth = round(mean(snowDepth), digits = 1),
+              snowMeltCycles = round(mean(snowMeltCycles), digits = 1),
+              snowExtentCycles = round(mean(snowExtentCycles), digits = 1)) 
   
   # Add sites mean to list of data frames
   data_list = c(data_list, list(sites_mean))
@@ -199,6 +240,6 @@ sites_joined = site_metadata %>%
   rename('Site' = 'SiteID')
 
 # Export data as a csv
-output_csv = paste(site_folder, 'sites_extracted.csv', sep = '/')
+output_csv = paste('./data', 'sites_extracted.csv', sep = '/')
 write.csv(sites_joined, file = output_csv, fileEncoding = 'UTF-8')
 print('Finished extracting data to sites.')

@@ -35,55 +35,61 @@ winter <- which(month(dates) %in% c(1:4,12))
 
 # Create subset for winter snow depths only
 winter.sd <- subset(snow.depth, winter)
+winter.se <- subset(snow.extent, winter)
 
 mean.winter.sd <- mean(winter.sd, na.rm = TRUE)
-
 terra::writeRaster(mean.winter.sd, './data/ABoVE_meanSnowDepth_2001_2017.tif')
 
 
 # Convert to arrays
-snow.depth.arr <- terra::as.array(snow.depth)
-snow.extent.arr <- terra::as.array(snow.extent)
+winter.sd.arr <- terra::as.array(winter.sd)
+snow.extent.arr <- terra::as.array(winter.se)
 
-# Calculate number of FTC at each cell
-# Define FTC function
-FTC <- function(x){
+# Calculate number of zeros in each cell
+# Define count zero function
+count.zero <- function(x){
   df <- x %>%
     as_tibble() %>%
-    mutate(a1 = . > 0,
-           a2 = lag(.) < 0,
-           cross = a1 == a2)
-  FTC <- sum(df$cross, na.rm = T)/2
-  return(FTC)
+    mutate(a1 = . == 0)
+  zeros <- sum(df$a1, na.rm = FALSE)
+  return(zeros)
+}
+
+# Define count snow-free function
+count_snowFree <- function(x){
+  df <- x %>%
+    as_tibble() %>%
+    mutate(a1 = . == 25)
+  snowFree <- sum(df$a1, na.rm = FALSE)
+  return(snowFree)
 }
 
 # Initialize variables
-raster <- list()
-n <- list()
-tmin <- list()
+n.sd <- matrix(data = NA, nrow = 1650, ncol = 1776)
+n.se <- matrix(data = NA, nrow = 1650, ncol = 1776)
 
-# Loop through each year & calculate the FTC for each cell
-for( year in 1:length(files)){
-  #raster[[year]] <- terra::rast(files[year])
-  #n[[year]] <- matrix(data = NA, nrow = 854, ncol = 802)
-  #tmin[[year]] <- as.array(raster[[year]])
-  
-  for(i in 1:nrow(tmin[[year]])){
-    for(j in 1:ncol(tmin[[year]])){
-      n[[year]][i,j] <- FTC(tmin[[year]][i,j,])
+# Loop through each layer & calculate total zeros for each cell
+  for(i in 1:nrow(winter.sd.arr)){
+    for(j in 1:ncol(winter.sd.arr)){
+      n.sd[i,j] <- count.zero(winter.sd.arr[i,j,])
     }
   }
-  
+
+for(i in 1:nrow(snow.extent.arr)){
+  for(j in 1:ncol(snow.extent.arr)){
+    n.se[i,j] <- count_snowFree(snow.extent.arr[i,j,])
+  }
 }
 
-# Calculate mean for each cell across years
-n.mean <- apply(simplify2array(n), 1:2, mean)
-
 # Create raster object
-ftc <- rast(n.mean, crs = crs(r.tmin), extent = ext(r.tmin))
+sd.cycles <- rast(n.sd, crs = crs(winter.sd), extent = ext(winter.sd))
+se.cycles <- rast(n.se, crs = crs(winter.se), extent = ext(winter.se))
+
+# Reproject using study area template
+temp <- rast('C:/Users/jeffw/OneDrive/Documents/Projects/Pika/Pika_distSamp/data/AlaskaPika_TotalArea_1.tif')
+sd.cycles.proj <- project(sd.cycles, crs(temp))
+se.cycles.proj <- project(se.cycles, crs(temp))
 
 # Export
-terra::writeRaster(ftc, '/Users/jeff/GitHub/akpika-density/data/ftc_2000_2019.tif')
-
-# Read in site data
-sites <- vect('./data/Transect_Export.gdb/')
+terra::writeRaster(sd.cycles.proj, 'C:/Users/jeffw/OneDrive/Desktop/GISdata/climatology/snowmelt/unprocessed/1km/ABoVE_SnowMeltCycles_2001_2017.tif')
+terra::writeRaster(se.cycles.proj, 'C:/Users/jeffw/OneDrive/Desktop/GISdata/climatology/snowextent/unprocessed/1km/ABoVE_SnowExtentCycles_2001_2017.tif')

@@ -10,18 +10,20 @@
 # Import packages
 import arcpy
 import os
+import datetime
+import time
 from package_GeospatialProcessing import arcpy_geoprocessing
 from package_GeospatialProcessing import calculate_climate_mean
-from package_GeospatialProcessing import format_climate_grids
-from package_GeospatialProcessing import interpolate_raster
+from package_GeospatialProcessing.formatClimateGrids_32bit import format_climate_grids_32bit
+from package_GeospatialProcessing.interpolateRaster_32bit import interpolate_raster_32bit
 arcpy.CheckOutExtension("Spatial")
 
 # Set root directory
 drive = 'C:/'
-root_folder = 'Users/jeffw//OneDrive/Desktop'
+root_folder = 'Users/jeffw/OneDrive/Desktop'
 
 # Define data folder
-data_folder = os.path.join(drive, root_folder, 'GISdata/climatology/ftc')
+data_folder = os.path.join(drive, root_folder, 'GISdata/climatology/snowmelt')
 project_folder = os.path.join(drive, 'Users/jeffw/OneDrive/Documents/Projects/Pika/Pika_distSamp')
 grid_folder = os.path.join(drive, root_folder, 'GISdata/analyses/grid_major/studyarea/')
 unprocessed_folder = os.path.join(data_folder, 'unprocessed/1km')
@@ -35,38 +37,50 @@ work_geodatabase = os.path.join(project_folder, 'Pika_distSamp.gdb')
 nab_raster = os.path.join(project_folder, 'data/AlaskaPika_TotalArea_1.tif')
 
 # Define output datasets
-mean_raw = os.path.join(processed_folder, 'full/FreezeThawCycles_MeanAnnual_Raw_1km_2000-2019.tif')
-mean_interpolated = os.path.join(processed_folder, 'sa/FreezeThawCycles_MeanAnnual_Interpolated_1km_2000-2019.tif')
+mean_raw = os.path.join(processed_folder, 'full/ABoVE_SnowMeltCycles_MeanWinter_Raw_1km_2001-2017.tif')
+mean_interpolated = os.path.join(processed_folder, 'sa/ABoVE_SnowMeltCycles_MeanWinter_Interpolated_1km_2001-2017.tif')
 
 # Define grids
 grid_list = ['A1', 'A2', 'B1', 'B2']
 
 # Define month and property values
-climate_property = 'ftc'
-years = ['2000_2019']
+climate_property = 'ABoVE_SnowMeltCycles'
+years = ['2001_2017']
 denominator = len(years)
 
 # Create a list of all climate raster data
 raster_list = []
 for year in years:
-        raster = os.path.join(unprocessed_folder, climate_property + '_' + year + '_AKAlbers' + '.tif')
+        raster = os.path.join(unprocessed_folder, climate_property + '_' + year + '.tif')
         raster_list.append(raster)
 
 #### CALCULATE CLIMATE MEAN
 
-# Create key word arguments for the climate mean
-kwargs_mean = {'denominator': denominator,
-               'input_array': raster_list,
-               'output_array': [mean_raw]
-               }
-
 # Create a composite raster of the climate mean
 if arcpy.Exists(mean_raw) == 0:
-    print('Calculating summer warmth index...')
-    arcpy_geoprocessing(calculate_climate_mean, **kwargs_mean)
+    iteration_start = time.time()
+    print(f'\tExporting climate mean to output raster...')
+    arcpy.management.CopyRaster(raster,
+                                mean_raw,
+                                '',
+                                '',
+                                '-32768',
+                                'NONE',
+                                'NONE',
+                                '32_BIT_FLOAT',
+                                'NONE',
+                                'NONE',
+                                'TIFF',
+                                'NONE')
     print('----------')
+    # End timing
+    iteration_end = time.time()
+    iteration_elapsed = int(iteration_end - iteration_start)
+    iteration_success_time = datetime.datetime.now()
+    # Report success
+    print(f'\tCompleted at {iteration_success_time.strftime("%Y-%m-%d %H:%M")} (Elapsed time: {datetime.timedelta(seconds=iteration_elapsed)})')
 else:
-    print('Summer warmth index already exists.')
+    print('Mean snow depth already exists.')
     print('----------')
 
 #### FILL MISSING DATA
@@ -79,7 +93,7 @@ kwargs_interpolate = {'input_array': [nab_raster, mean_raw],
 # Interpolate climate raster
 if arcpy.Exists(mean_interpolated) == 0:
     print('Filling missing data...')
-    arcpy_geoprocessing(interpolate_raster, **kwargs_interpolate)
+    arcpy_geoprocessing(interpolate_raster_32bit, **kwargs_interpolate)
     print('----------')
 else:
     print('Filled data already exists.')
@@ -94,7 +108,7 @@ count = 1
 for grid in grid_list:
     # Define folder structure
     output_path = os.path.join(output_folder, grid)
-    output_raster = os.path.join(output_path, 'FreezeThawCycles_MeanAnnual_AKALB_' + grid + '.tif')
+    output_raster = os.path.join(output_path, 'ABoVE_SnowMelt_MeanWinter_AKALB_' + grid + '.tif')
 
     # Make grid folder if it does not already exist
     if os.path.exists(output_path) == 0:
@@ -112,7 +126,7 @@ for grid in grid_list:
 
         # Extract climate data to grid
         print(f'Processing grid {count} of {len(grid_list)}...')
-        arcpy_geoprocessing(format_climate_grids, **kwargs_grid)
+        arcpy_geoprocessing(format_climate_grids_32bit, **kwargs_grid)
         print('----------')
     else:
         print(f'Grid {count} of {len(grid_list)} already exists.')

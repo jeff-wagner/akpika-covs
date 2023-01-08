@@ -13,8 +13,8 @@ library(dplyr)
 library(data.table)
 
 # Define paths
-data.folder = '/Users/jeff/Documents/Projects/Pika/Data/Daymet'
-files <- list.files(data.folder, full.names = TRUE)[2:21]
+data.folder = 'C:/Users/jeffw/iCloudDrive/Projects/Pika/Data/Daymet'
+files <- list.files(data.folder, full.names = TRUE)[3:22]
 
 # Create a raster stack
 r.tmin <- terra::rast(files, drivers = "NETCDF")
@@ -63,6 +63,3 @@ ftc <- rast(n.mean, crs = crs(r.tmin), extent = ext(r.tmin))
 
 # Export
 terra::writeRaster(ftc, '/Users/jeff/GitHub/akpika-density/data/ftc_2000_2019.tif')
-
-# Read in site data
-sites <- vect('./data/Transect_Export.gdb/')
