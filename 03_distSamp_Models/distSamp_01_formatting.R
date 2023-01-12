@@ -8,8 +8,9 @@
 # ---------------------------------------------------------------------------
 
 # Read in the observation and covariate data from our data management scripts.
-source("01_dataSurveys/data_01_Observations.r")
 source("02_dataCovariates/covs_02_CompileCovariates.r")
+source("01_dataSurveys/data_01_Observations.r")
+
 
 # Part 1: Explore and cleanup the observation data  ------------------------------------------------------------
 
@@ -30,7 +31,7 @@ dim(pika.obs.t)           #185 pika observations
 pika.obs.tr <- pika.obs.t %>% 
   filter(perp.dist < 70)
 
-dim(pika.obs.tr)        #Now have 176 observations; removed 9 observations (4.9% of the data) 
+dim(pika.obs.tr)        #Now have 180 observations; removed 5 observations (4.9% of the data) 
 hist(pika.obs.tr$perp.dist)
 
 summary(pika.obs.tr)
@@ -52,7 +53,6 @@ head(transect.covs)
 summary(transect.covs)
 
 transect.covs <- transect.covs %>% 
-  rename("Site"="Site.x") %>% 
   mutate("site"=as.numeric(as.factor(Site)))
 
 # Convert character columns to factors
@@ -72,15 +72,21 @@ transect.covs$tallshrub <- as.numeric(transect.covs$tallshrub)
 
 # Check for correlations ------------------------------------------------------------------------
 # Covariates that are highly correlated should not be included in the same model
-covs.cor <- transect.covs %>% 
-  select(latitude, longitude, tempc, windms, day.of.year, dist.road, lowshrub, tallshrub, talus, 
-         eds, aspect, wetness, elevation, slope, roughness, exposure, heatload, relief, position,
-         radiation, evi2, nbr, ndmi, ndsi, ndvi, ndwi, precip, summerWarmth, januaryMinTemp, logs, 
-         search.time, t.length, start.hr, 
-         #veg.height, lowshrub.cover, shrubCover, 
-         northness, eastness)
+# covs.cor <- transect.covs %>% 
+#   select(latitude, longitude, tempc, windms, day.of.year, dist.road, lowshrub, tallshrub, talus, 
+#          eds, aspect, wetness, elevation, slope, roughness, exposure, heatload, relief, position,
+#          radiation, evi2, nbr, ndmi, ndsi, ndvi, ndwi, precip, summerWarmth, januaryMinTemp, logs, 
+#          search.time, t.length, start.hr, 
+#          #veg.height, lowshrub.cover, shrubCover, 
+#          northness, eastness)
 
-cor <- cor(covs.cor, use="pairwise")
+mod.covs <- transect.covs %>% 
+  mutate(evi2_bt = ((evi2-0.5)/1000000), ndvi_bt = ((ndvi-0.5)/1000000)) %>% 
+  select(latitude, aspect, wetness, elevation, slope, roughness, heatload, relief, radiation, 
+         evi2, evi2_bt, ndvi, ndvi_bt, precip, summerWarmth, januaryMinTemp, logs, ftc, snowDepth, 
+         snowMeltCycles, snowExtentCycles, search.time, t.length, start.hr, northness, eastness)
+
+cor <- cor(mod.covs, use="pairwise")
 
 # Just topographic & climate
 topoCovs <- transect.covs %>% 
@@ -91,7 +97,7 @@ topoCor <- cor(topoCovs, use = "pairwise")
 # Visualize correlations: only slope and roughness are highly correlated (r=0.85)
 # Anything > 0.60 or < -0.60 we considered correlated and won't consider in same model
 library(psych)
-pairs.panels(covs.cor,ellipses = F)
+pairs.panels(mod.covs,ellipses = F)
 pairs.panels(topoCor, ellipses = F)
 
 cor[which(cor > 0.6)]
@@ -122,15 +128,13 @@ head(pika.obs.alltrans)  #view a table to see that the 50 transects were tacked 
 dim(pika.obs.alltrans)   #we've gone from 182 observations to 230 indicating we've added 48 rows.
 tail(pika.obs.alltrans)  #yes, looks like we've tacked on the transects where no pika observed.
 
-# Site Covariates
-
-siteCovs <- transect.covs[!duplicated(transect.covs["Site"]),]
-
 # Part 3: Format the observation data for JAGS  ------------------------------------------------------------
 
+# Define site-level covariates 
+siteCovs <- transect.covs[!duplicated(transect.covs["Site"]),]
 
 obsCovData <- left_join(transect.covs, pika.obs.alltrans, by = c("Site"="Site", "transect")) %>% 
-  select(-'compare.transcovs.obs$transect', -'Location.y', -'Observer.y', -'observer.y', -'Site.y') %>% 
+  select(-'compare.transcovs.obs$transect', -'Location.y', -'Observer.y', -'observer.y') %>% 
   rename("Location" = "Location.x", "Observer" = "Observer.x", "observer" = "observer.x",
          "Transect" = "transect.y")
 
@@ -153,16 +157,10 @@ DSdata <- data.frame(Site = as.character(obsCovData$Site),
 
 # Prepare site level covariate data
 DSsiteCovs <- list(
+              location=as.numeric(siteCovs$Location),
               latitude=scale(siteCovs$latitude),
-              longitude=scale(siteCovs$longitude),
-              tempc=scale(siteCovs$tempc),
-              windms=scale(siteCovs$windms),
-              doy=scale(siteCovs$day.of.year),
               dist.road=scale(siteCovs$dist.road),
-              lowshrub=scale(siteCovs$lowshrub),
-              tallshrub=scale(siteCovs$tallshrub),
-              shrub=scale(siteCovs$lowshrub+siteCovs$tallshrub),
-              occ_status=as.numeric(siteCovs$occ_status),
+              occ_status=as.numeric(siteCovs$occ.status),
               twi=scale(siteCovs$wetness),
               slope=scale(siteCovs$slope),
               exposure=scale(siteCovs$exposure),
@@ -173,6 +171,9 @@ DSsiteCovs <- list(
               januaryMinTemp=scale(siteCovs$januaryMinTemp),
               ndvi=scale(siteCovs$ndvi),
               logs=scale(siteCovs$logs),
+              freezeThaw=scale(siteCovs$ftc),
+              snowDepth=scale(siteCovs$snowDepth),
+              snowMelt=scale(siteCovs$snowMeltCycles),
               elevation=scale(siteCovs$elevation),
               Site=as.numeric(as.factor(siteCovs$Site)),
               roughness=scale(siteCovs$roughness),

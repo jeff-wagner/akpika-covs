@@ -17,14 +17,14 @@ arcpy.CheckOutExtension("Spatial")
 
 # Set root directory
 drive = 'C:/'
-root_folder = 'Users/jeffw/Dropbox/Pika'
+root_folder = 'Users/jeffw/OneDrive/Desktop'
 
 # Define folder structure
 data_folder = os.path.join(drive, root_folder, 'GISdata/imagery/sentinel-2')
 project_folder = os.path.join(drive, 'Users/jeffw/OneDrive/Documents/Projects/Pika/Pika_distSamp')
 grid_folder = os.path.join(drive, root_folder, 'GISdata/analyses/grid_major/studyarea/')
 processed_folder = os.path.join(data_folder, 'processed/sa')
-output_folder = os.path.join(data_folder, 'gridded/sa')
+output_folder = os.path.join(data_folder, 'gridded')
 
 # Define geodatabases
 work_geodatabase = os.path.join(project_folder, 'Pika_distSamp.gdb')
@@ -41,11 +41,7 @@ months = ['06',
           '08',
           '09']
 bands = ['evi2',
-         'nbr',
-         'ndmi',
-         'ndsi',
-         'ndvi',
-         'ndwi']
+         'ndvi']
 
 # Create a list of all month-property combinations
 metrics_list = []

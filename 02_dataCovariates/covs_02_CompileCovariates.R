@@ -18,12 +18,19 @@ data_folder = paste(getwd(),
 
 # Part 1: Read in extracted topographic and climate data -----------------------
 sites_extracted = read.csv(paste(data_folder, "sites_extracted.csv", sep = "/"))
+occ_status = read.csv(paste(data_folder, "pika_site_occupation.csv", sep = "/")) %>% 
+  arrange(Site) %>% 
+  mutate(Site = gsub('A','', Site))
 
 # Select columns of interest
 sites_extracted <- sites_extracted %>% 
-  select(Site, random_sit, occ_status, aspect, wetness, elevation, slope, roughness, exposure,
+  select(Site, aspect, wetness, elevation, slope, roughness, exposure,
          heatload, relief, position, radiation, evi2, nbr, ndmi, ndsi, ndvi, ndwi, precip, 
-         summerWarmth, januaryMinTemp, logs)
+         summerWarmth, januaryMinTemp, logs, ftc, snowDepth, snowMeltCycles, snowExtentCycles) %>% 
+  arrange(Site) %>% 
+  mutate(occ.status = ifelse(occ_status$occ.status=="occupied",1,0),
+         random.site = occ_status$random_site)
+  
 
 # Part 2: Load and clean up the transect-level covariates  --------------------------------------------------
 
@@ -43,14 +50,15 @@ site.summary <- as.data.frame(site.summary)
 
 # Select the columns of interest.
 site.summary <- site.summary %>% 
-  select(-Org, -random_site, -No_groups, -Veg_survey, -Site_info, -Notes)
+  select(-Org, -slope, -aspect, - elevation, -roughness, -No_groups, -Veg_survey, -Site_info, -Notes)
 
 # Need to standardize all temperatures to Celsius and all wind speed to m/s.
 site.summary <- site.summary %>% 
   mutate(tempc = case_when(Temp_Unit == "F" ~  ( (Temp-32) * 5/9), 
                            Temp_Unit == "C" ~ Temp )) %>% 
   mutate(windms = case_when(Wind_Unit == "m/s" ~ Wind,
-                            Wind_Unit == "mph" ~ Wind/2.237))
+                            Wind_Unit == "mph" ~ Wind/2.237)) %>% 
+  mutate(Site = gsub('A','', Site))
 
 # Subset out revisits too, being sure to keep the JBER sites which were labeled as revisits.
 site.summary <- site.summary %>% 
@@ -81,7 +89,8 @@ dist.road <- read.csv('./data/allSites_distToRoad.csv')
 # Select columns of interest: site and distance to road (NEAR_DIST)
 dist.road <- dist.road %>% 
   select(-OBJECTID, -Org, -Location, -latitude, - longitude, -Year, -Date, -visit_type,-NEAR_FID) %>% 
-  rename(dist.road = NEAR_DIST)
+  rename(dist.road = NEAR_DIST) %>% 
+  mutate(Site = gsub('A','', Site))
 
 # Join dist.road with other covariates by site
 site.summary <- left_join(site.summary, dist.road, by = 'Site')
@@ -99,7 +108,8 @@ site.250 <- as.data.frame(site.250)
 
 # Primary interests are % cover of shrub and % cover of talus
 site.250 <- site.250 %>% 
-  select(Site, `LS_%`, `TS_%`, `Talus_%`)
+  select(Site, `LS_%`, `TS_%`, `Talus_%`) %>% 
+  mutate(Site = gsub('A','', Site))
 
 # Rename these columns to something simpler
 site.250 <- site.250 %>% 
@@ -118,7 +128,8 @@ site.50 <- as.data.frame(site.50)
 
 # Select the columns of interest
 site.50 <- site.50 %>% 
-  select(-Viereck_ID, -Surveyed, -Dist_talus_m, -Notes)
+  select(-Viereck_ID, -Surveyed, -Dist_talus_m, -Notes) %>% 
+  mutate(Site = gsub('A','', Site))
 
 # Make PercentCover numeric
 site.50$PercentCover <- as.numeric(site.50$PercentCover)
@@ -204,10 +215,10 @@ dim(transect.covs)  #transect covs is 47 rows.
 # Observer 3, Observer 4 columns. Observer will represent the initials of the field observer. obs1.4 is a placeholder
 # for identifying Observers 1, 2, 3, 4. 
 transect.covs <- transect.covs %>% 
-  gather(obs1.4, Observer, -Location, -Site, -latitude, -longitude, -Year, - tempc, -windms, -day.of.year, -dist.road,
-         -lowshrub, - tallshrub, -talus, -eds, -random_sit, -occ_status,  -aspect, -wetness, -elevation, -slope,
+  gather(obs1.4, Observer, -Location, -Site, -latitude, -longitude, -Year, -random.site, -occ.status, - tempc, -windms, -day.of.year, -dist.road,
+         -lowshrub, - tallshrub, -talus, -eds, -aspect, -wetness, -elevation, -slope,
          -roughness, -exposure, -heatload, -relief, -position, -radiation, -evi2, -nbr, -ndmi, -ndsi, -ndvi, -ndwi,
-         -precip, -summerWarmth, -januaryMinTemp, -logs) #Yep, 188 rows.
+         -precip, -summerWarmth, -januaryMinTemp, -logs, -ftc, -snowDepth, -snowMeltCycles, -snowExtentCycles) #Yep, 188 rows.
 head(transect.covs)
 dim(transect.covs)
 
@@ -286,7 +297,7 @@ pika.tracks <- readRDS("./data/tracks.RData")
 
 # Add the covariates from the pika.tracks dataframe to the transect.covs dataframe
 transect.covs <- transect.covs %>% 
-  left_join(pika.tracks, by = c("transect" = "Transect"))
+  left_join(pika.tracks, by = c("Site", "transect" = "Transect"))
 
 # View the transect-level covariates with transect length and search speed
 transect.covs
@@ -327,12 +338,9 @@ transect.covs$aspectRad <- transect.covs$aspect*pi/180
 transect.covs <- transect.covs %>% 
   mutate(northness = cos(aspectRad), eastness = sin(aspectRad))
 
-
 # Lastly, cleanup the environment, keeping only the objects that we will use in the final
 # analysis. When we read in this script later, we will only have the objects that we need. 
-rm(compare.250.50, compare.250.sitesummary, compare.50.sitesummary, compare.sitesummary.250, 
-   compare.sitesummary.50, compare.transect.covs.pika.tracks, dist.road, pika.tracks, site.250, 
-   site.50, trans.covs, eds.mean, path1, shrub, veg.height, domVeg, lowshrub, sites_extracted, data_folder)
+rm(list= ls()[!(ls() %in% c('transect.covs'))])
 
 
 

@@ -14,13 +14,14 @@ import fnmatch
 import os
 from package_GeospatialProcessing import arcpy_geoprocessing
 from package_GeospatialProcessing import reproject_integer
+from package_GeospatialProcessing.reprojectInteger_32bit import reproject_integer_32bit
 import time
 
 arcpy.CheckOutExtension("Spatial")
 
 # Set root directory
 drive = 'C:/'
-root_folder = 'Users/jeffw/Dropbox/Pika'
+root_folder = 'Users/jeffw/OneDrive/Desktop'
 
 # Define folder structure
 data_folder = os.path.join(drive, root_folder, 'GISdata/imagery/sentinel-2')
@@ -79,9 +80,9 @@ for tile in unprocessed_tiles:
                 or fnmatch.fnmatch(processed_tile, '*ndsi*')
                 or fnmatch.fnmatch(processed_tile, '*ndvi*')
                 or fnmatch.fnmatch(processed_tile, '*ndwi*')):
-            conversion_factor = 1000000
+            conversion_factor = 1 #1000000
         else:
-            conversion_factor = 10
+            conversion_factor = 1 #10
 
         # Create key word arguments
         kwargs_reproject = {'cell_size': 10,
@@ -95,7 +96,7 @@ for tile in unprocessed_tiles:
 
         # Process the reproject integer function
         print(f'Processing tile {count} of {tiles_length} using conversion factor {conversion_factor}...')
-        arcpy_geoprocessing(reproject_integer, **kwargs_reproject)
+        arcpy_geoprocessing(reproject_integer_32bit, **kwargs_reproject)
         print('----------')
     else:
         print(f'Tile {count} of {tiles_length} already exists.')
