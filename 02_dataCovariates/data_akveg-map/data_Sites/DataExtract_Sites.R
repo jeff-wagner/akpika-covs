@@ -49,9 +49,6 @@ snowdepth_folder = paste(data_folder,
 snowmelt_folder = paste(data_folder,
                    'climatology/snowmelt/gridded',
                    sep = '/')
-snowextent_folder = paste(data_folder,
-                        'climatology/snowextent/gridded',
-                        sep = '/')
 
 
 # Define input site metadata
@@ -97,7 +94,6 @@ for (grid in grid_list) {
   ftc_grid = paste(ftc_folder, grid_folder, sep = '/')
   snowdepth_grid = paste(snowdepth_folder, grid_folder, sep = '/')
   snowmelt_grid = paste(snowmelt_folder, grid_folder, sep = '/')
-  snowextent_grid = paste(snowextent_folder, grid_folder, sep = '/')
 
   
   # Create a list of all predictor rasters
@@ -109,7 +105,6 @@ for (grid in grid_list) {
   predictors_ftc = list.files(ftc_grid, pattern = 'tif$', full.names = TRUE)
   predictors_snowdepth = list.files(snowdepth_grid, pattern = 'tif$', full.names = TRUE)
   predictors_snowmelt = list.files(snowmelt_grid, pattern = 'tif$', full.names = TRUE)
-  predictors_snowextent = list.files(snowextent_grid, pattern = 'tif$', full.names = TRUE)
   predictors_all = c(predictors_topography,
                      predictors_sentinel2,
                      predictors_temperature,
@@ -117,8 +112,7 @@ for (grid in grid_list) {
                      predictors_growingSeason,
                      predictors_ftc,
                      predictors_snowdepth,
-                     predictors_snowmelt,
-                     predictors_snowextent)
+                     predictors_snowmelt)
   print("Number of predictor rasters:")
   print(length(predictors_all))
   
@@ -163,37 +157,37 @@ for (grid in grid_list) {
     rename(position = paste('Position_', grid_name, sep = '')) %>%
     rename(radiation = paste('Radiation_', grid_name, sep = '')) %>%
     rename(evi2_06 = paste('Sent2_06_evi2_', grid_name, sep = '')) %>%
-    rename(nbr_06 = paste('Sent2_06_nbr_', grid_name, sep = '')) %>%
-    rename(ndmi_06 = paste('Sent2_06_ndmi_', grid_name, sep = '')) %>%
-    rename(ndsi_06 = paste('Sent2_06_ndsi_', grid_name, sep = '')) %>%
+    # rename(nbr_06 = paste('Sent2_06_nbr_', grid_name, sep = '')) %>%
+    # rename(ndmi_06 = paste('Sent2_06_ndmi_', grid_name, sep = '')) %>%
+    # rename(ndsi_06 = paste('Sent2_06_ndsi_', grid_name, sep = '')) %>%
     rename(ndvi_06 = paste('Sent2_06_ndvi_', grid_name, sep = '')) %>%
-    rename(ndwi_06 = paste('Sent2_06_ndwi_', grid_name, sep = '')) %>%
+    # rename(ndwi_06 = paste('Sent2_06_ndwi_', grid_name, sep = '')) %>%
     rename(evi2_07 = paste('Sent2_07_evi2_', grid_name, sep = '')) %>%
-    rename(nbr_07 = paste('Sent2_07_nbr_', grid_name, sep = '')) %>%
-    rename(ndmi_07 = paste('Sent2_07_ndmi_', grid_name, sep = '')) %>%
-    rename(ndsi_07 = paste('Sent2_07_ndsi_', grid_name, sep = '')) %>%
+    # rename(nbr_07 = paste('Sent2_07_nbr_', grid_name, sep = '')) %>%
+    # rename(ndmi_07 = paste('Sent2_07_ndmi_', grid_name, sep = '')) %>%
+    # rename(ndsi_07 = paste('Sent2_07_ndsi_', grid_name, sep = '')) %>%
     rename(ndvi_07 = paste('Sent2_07_ndvi_', grid_name, sep = '')) %>%
-    rename(ndwi_07 = paste('Sent2_07_ndwi_', grid_name, sep = '')) %>%
+    # rename(ndwi_07 = paste('Sent2_07_ndwi_', grid_name, sep = '')) %>%
     rename(evi2_08 = paste('Sent2_08_evi2_', grid_name, sep = '')) %>%
-    rename(nbr_08 = paste('Sent2_08_nbr_', grid_name, sep = '')) %>%
-    rename(ndmi_08 = paste('Sent2_08_ndmi_', grid_name, sep = '')) %>%
-    rename(ndsi_08 = paste('Sent2_08_ndsi_', grid_name, sep = '')) %>%
+    # rename(nbr_08 = paste('Sent2_08_nbr_', grid_name, sep = '')) %>%
+    # rename(ndmi_08 = paste('Sent2_08_ndmi_', grid_name, sep = '')) %>%
+    # rename(ndsi_08 = paste('Sent2_08_ndsi_', grid_name, sep = '')) %>%
     rename(ndvi_08 = paste('Sent2_08_ndvi_', grid_name, sep = '')) %>%
-    rename(ndwi_08 = paste('Sent2_08_ndwi_', grid_name, sep = '')) %>%
+    # rename(ndwi_08 = paste('Sent2_08_ndwi_', grid_name, sep = '')) %>%
     rename(evi2_09 = paste('Sent2_09_evi2_', grid_name, sep = '')) %>%
-    rename(nbr_09 = paste('Sent2_09_nbr_', grid_name, sep = '')) %>%
-    rename(ndmi_09 = paste('Sent2_09_ndmi_', grid_name, sep = '')) %>%
-    rename(ndsi_09 = paste('Sent2_09_ndsi_', grid_name, sep = '')) %>%
+    # rename(nbr_09 = paste('Sent2_09_nbr_', grid_name, sep = '')) %>%
+    # rename(ndmi_09 = paste('Sent2_09_ndmi_', grid_name, sep = '')) %>%
+    # rename(ndsi_09 = paste('Sent2_09_ndsi_', grid_name, sep = '')) %>%
     rename(ndvi_09 = paste('Sent2_09_ndvi_', grid_name, sep = '')) %>%
-    rename(ndwi_09 = paste('Sent2_09_ndwi_', grid_name, sep = '')) %>%
+    # rename(ndwi_09 = paste('Sent2_09_ndwi_', grid_name, sep = '')) %>%
     rename(summerWarmth = paste('SummerWarmth_MeanAnnual_AKALB_', grid_name, sep = '')) %>%
     rename(januaryMinTemp = paste("January_MinimumTemperature_AKALB_", grid_name, sep = '')) %>% 
+    rename(novemberMinTemp = paste("November_MinimumTemperature_AKALB_", grid_name, sep = '')) %>% 
     rename(precip = paste('Precipitation_MeanAnnual_AKALB_', grid_name, sep = '')) %>% 
     rename(logs = paste('LengthOfGrowingSeason_AKALB_', grid_name, sep = '')) %>% 
     rename(ftc = paste('FreezeThawCycles_MeanAnnual_AKALB_', grid_name, sep = '')) %>% 
     rename(snowDepth = paste('ABoVE_SnowDepth_MeanWinter_AKALB_', grid_name, sep = '')) %>% 
-    rename(snowMeltCycles = paste('ABoVE_SnowMelt_MeanWinter_AKALB_', grid_name, sep = '')) %>% 
-    rename(snowExtentCycles = paste('ABoVE_SnowExtent_MeanWinter_AKALB_', grid_name, sep = ''))
+    rename(snowMeltCycles = paste('ABoVE_SnowMelt_MeanWinter_AKALB_', grid_name, sep = ''))
 
   # Summarize data by site
   sites_mean = sites_extracted %>%
@@ -209,19 +203,19 @@ for (grid in grid_list) {
               position = round(mean(position), digits = 1),
               radiation = round(mean(radiation), digits = 1),
               evi2 = round(mean(evi2_06+evi2_07+evi2_08+evi2_09), digits = 1),
-              nbr = round(mean(nbr_06+nbr_07+nbr_08+nbr_09), digits = 1),
-              ndmi = round(mean(ndmi_06+ndmi_07+ndmi_08+ndmi_09), digits = 1),
-              ndsi = round(mean(ndsi_06+ndsi_07+ndsi_08+ndsi_09), digits = 1),
+              # nbr = round(mean(nbr_06+nbr_07+nbr_08+nbr_09), digits = 1),
+              # ndmi = round(mean(ndmi_06+ndmi_07+ndmi_08+ndmi_09), digits = 1),
+              # ndsi = round(mean(ndsi_06+ndsi_07+ndsi_08+ndsi_09), digits = 1),
               ndvi = round(mean(ndvi_06+ndvi_07+ndvi_08+ndvi_09), digits = 1),
-              ndwi = round(mean(ndwi_06+ndwi_07+ndwi_08+ndwi_09), digits = 1),
+              # ndwi = round(mean(ndwi_06+ndwi_07+ndwi_08+ndwi_09), digits = 1),
               precip = round(mean(precip), digits = 1),
               summerWarmth = round(mean(summerWarmth), digits = 1),
               januaryMinTemp = round(mean(januaryMinTemp), digits = 1),
+              novemberMinTemp = round(mean(novemberMinTemp), digits = 1),
               logs = round(mean(logs), digits = 1),
               ftc = round(mean(ftc), digits = 1),
               snowDepth = round(mean(snowDepth), digits = 1),
-              snowMeltCycles = round(mean(snowMeltCycles), digits = 1),
-              snowExtentCycles = round(mean(snowExtentCycles), digits = 1)) 
+              snowMeltCycles = round(mean(snowMeltCycles), digits = 1)) 
   
   # Add sites mean to list of data frames
   data_list = c(data_list, list(sites_mean))

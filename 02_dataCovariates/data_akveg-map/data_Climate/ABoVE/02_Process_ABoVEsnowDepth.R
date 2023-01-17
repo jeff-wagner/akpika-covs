@@ -15,9 +15,9 @@ library(data.table)
 library(lubridate)
 
 # Define paths
-root_folder = 'C:/Users/jeffw/iCloudDrive/Projects/Pika'
+root_folder = 'C:/Users/jeffw/OneDrive/Desktop/GISdata'
 data_folder = paste(root_folder,
-                    'Data/ABoVE',
+                    'ABoVE',
                     sep = '/')
 
 files <- list.files(data_folder, full.names = TRUE)
@@ -30,20 +30,28 @@ snow.extent <- subset(snow, 1:782)
 # Create vector of dates
 dates <- time(snow.depth)
 
-# Retrieve positions of winter dates (Dec - Apr)
-winter <- which(month(dates) %in% c(1:4,12))
+# Retrieve positions of winter dates (Dec - Mar)
+winter <- which(month(dates) %in% c(1:3,12))
 
 # Create subset for winter snow depths only
 winter.sd <- subset(snow.depth, winter)
 winter.se <- subset(snow.extent, winter)
 
+# Calculate mean across years
 mean.winter.sd <- mean(winter.sd, na.rm = TRUE)
-terra::writeRaster(mean.winter.sd, './data/ABoVE_meanSnowDepth_2001_2017.tif')
+
+# Reproject using study area template
+temp <- rast('C:/Users/jeffw/OneDrive/Documents/Projects/Pika/Pika_distSamp/data/AlaskaPika_TotalArea_1.tif')
+mean.sd.proj <- project(mean.winter.sd, crs(temp))
+
+terra::writeRaster(mean.sd.proj, paste(root_folder,
+                                         'climatology/snowdepth/unprocessed/1km/ABoVE_meanSnowDepth_2001_2017.tif',
+                                         sep = '/'), overwrite = TRUE)
 
 
 # Convert to arrays
 winter.sd.arr <- terra::as.array(winter.sd)
-snow.extent.arr <- terra::as.array(winter.se)
+winter.se.arr <- terra::as.array(winter.se)
 
 # Calculate number of zeros in each cell
 # Define count zero function
@@ -86,7 +94,6 @@ sd.cycles <- rast(n.sd, crs = crs(winter.sd), extent = ext(winter.sd))
 se.cycles <- rast(n.se, crs = crs(winter.se), extent = ext(winter.se))
 
 # Reproject using study area template
-temp <- rast('C:/Users/jeffw/OneDrive/Documents/Projects/Pika/Pika_distSamp/data/AlaskaPika_TotalArea_1.tif')
 sd.cycles.proj <- project(sd.cycles, crs(temp))
 se.cycles.proj <- project(se.cycles, crs(temp))
 
