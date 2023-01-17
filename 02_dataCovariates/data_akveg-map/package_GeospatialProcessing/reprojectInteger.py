@@ -75,15 +75,15 @@ def reproject_integer(**kwargs):
     # Round to integer and store as 32 bit signed raster
     print(f'\tConverting raster to 32 bit integer...')
     iteration_start = time.time()
-    integer_raster = Int((Raster(reprojected_raster) * conversion_factor) + 0.5)
-    arcpy.management.CopyRaster(integer_raster,
+    # integer_raster = Int((Raster(reprojected_raster) * conversion_factor) + 0.5)
+    arcpy.management.CopyRaster(reprojec_raster,
                                 output_raster,
                                 '',
                                 '',
-                                '-2147483648',
+                                '-999', #2147483648
                                 'NONE',
                                 'NONE',
-                                '32_BIT_SIGNED',
+                                '32_BIT_FLOAT', #SIGNED
                                 'NONE',
                                 'NONE',
                                 'TIFF',
