@@ -156,25 +156,25 @@ for (grid in grid_list) {
     rename(relief = paste('Relief_', grid_name, sep = '')) %>%
     rename(position = paste('Position_', grid_name, sep = '')) %>%
     rename(radiation = paste('Radiation_', grid_name, sep = '')) %>%
-    rename(evi2_06 = paste('Sent2_06_evi2_', grid_name, sep = '')) %>%
+    #rename(evi2_06 = paste('Sent2_06_evi2_', grid_name, sep = '')) %>%
     # rename(nbr_06 = paste('Sent2_06_nbr_', grid_name, sep = '')) %>%
     # rename(ndmi_06 = paste('Sent2_06_ndmi_', grid_name, sep = '')) %>%
     # rename(ndsi_06 = paste('Sent2_06_ndsi_', grid_name, sep = '')) %>%
     rename(ndvi_06 = paste('Sent2_06_ndvi_', grid_name, sep = '')) %>%
     # rename(ndwi_06 = paste('Sent2_06_ndwi_', grid_name, sep = '')) %>%
-    rename(evi2_07 = paste('Sent2_07_evi2_', grid_name, sep = '')) %>%
+    #rename(evi2_07 = paste('Sent2_07_evi2_', grid_name, sep = '')) %>%
     # rename(nbr_07 = paste('Sent2_07_nbr_', grid_name, sep = '')) %>%
     # rename(ndmi_07 = paste('Sent2_07_ndmi_', grid_name, sep = '')) %>%
     # rename(ndsi_07 = paste('Sent2_07_ndsi_', grid_name, sep = '')) %>%
     rename(ndvi_07 = paste('Sent2_07_ndvi_', grid_name, sep = '')) %>%
     # rename(ndwi_07 = paste('Sent2_07_ndwi_', grid_name, sep = '')) %>%
-    rename(evi2_08 = paste('Sent2_08_evi2_', grid_name, sep = '')) %>%
+    #rename(evi2_08 = paste('Sent2_08_evi2_', grid_name, sep = '')) %>%
     # rename(nbr_08 = paste('Sent2_08_nbr_', grid_name, sep = '')) %>%
     # rename(ndmi_08 = paste('Sent2_08_ndmi_', grid_name, sep = '')) %>%
     # rename(ndsi_08 = paste('Sent2_08_ndsi_', grid_name, sep = '')) %>%
     rename(ndvi_08 = paste('Sent2_08_ndvi_', grid_name, sep = '')) %>%
     # rename(ndwi_08 = paste('Sent2_08_ndwi_', grid_name, sep = '')) %>%
-    rename(evi2_09 = paste('Sent2_09_evi2_', grid_name, sep = '')) %>%
+    #rename(evi2_09 = paste('Sent2_09_evi2_', grid_name, sep = '')) %>%
     # rename(nbr_09 = paste('Sent2_09_nbr_', grid_name, sep = '')) %>%
     # rename(ndmi_09 = paste('Sent2_09_ndmi_', grid_name, sep = '')) %>%
     # rename(ndsi_09 = paste('Sent2_09_ndsi_', grid_name, sep = '')) %>%
@@ -202,11 +202,11 @@ for (grid in grid_list) {
               relief = round(mean(relief), digits = 1),
               position = round(mean(position), digits = 1),
               radiation = round(mean(radiation), digits = 1),
-              evi2 = round(mean(evi2_06+evi2_07+evi2_08+evi2_09), digits = 1),
+              #evi2 = round(((evi2_06+evi2_07+evi2_08)/3), digits = 2),
               # nbr = round(mean(nbr_06+nbr_07+nbr_08+nbr_09), digits = 1),
               # ndmi = round(mean(ndmi_06+ndmi_07+ndmi_08+ndmi_09), digits = 1),
               # ndsi = round(mean(ndsi_06+ndsi_07+ndsi_08+ndsi_09), digits = 1),
-              ndvi = round(mean(ndvi_06+ndvi_07+ndvi_08+ndvi_09), digits = 1),
+              ndvi = round(((ndvi_06+ndvi_07+ndvi_08)/3), digits = 2),
               # ndwi = round(mean(ndwi_06+ndwi_07+ndwi_08+ndwi_09), digits = 1),
               precip = round(mean(precip), digits = 1),
               summerWarmth = round(mean(summerWarmth), digits = 1),

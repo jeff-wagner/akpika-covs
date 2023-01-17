@@ -81,32 +81,20 @@ transect.covs$tallshrub <- as.numeric(transect.covs$tallshrub)
 #          northness, eastness)
 
 mod.covs <- transect.covs %>% 
-  mutate(evi2_bt = ((evi2-0.5)/1000000), ndvi_bt = ((ndvi-0.5)/1000000)) %>% 
-  select(latitude, aspect, wetness, elevation, slope, roughness, heatload, relief, radiation, 
-         evi2, evi2_bt, ndvi, ndvi_bt, precip, summerWarmth, januaryMinTemp, logs, ftc, snowDepth, 
-         snowMeltCycles, snowExtentCycles, search.time, t.length, start.hr, northness, eastness)
+  select(ndvi,summerWarmth, januaryMinTemp, novemberMinTemp, logs, ftc, snowDepth, 
+         snowMeltCycles, search.time, t.length, start.hr)
 
 cor <- cor(mod.covs, use="pairwise")
 
-# Just topographic & climate
-topoCovs <- transect.covs %>% 
-  select(latitude, longitude, wetness, elevation, slope, roughness, exposure, heatload, relief, position, radiation, 
-         evi2, nbr, ndmi, ndsi, ndvi, ndwi, precip, summerWarmth, januaryMinTemp, logs, northness, eastness)
-topoCor <- cor(topoCovs, use = "pairwise")
 
 # Visualize correlations: only slope and roughness are highly correlated (r=0.85)
 # Anything > 0.60 or < -0.60 we considered correlated and won't consider in same model
 library(psych)
 pairs.panels(mod.covs,ellipses = F)
-pairs.panels(topoCor, ellipses = F)
 
 cor[which(cor > 0.6)]
 which(cor > 0.6 | cor < -0.6)
 cor[which(cor < 0.6 & cor > -0.6)] <- NA
-
-topoCor60 <- topoCor
-topoCor60[which(topoCor60 < 0.6 & topoCor60 > -0.6)] <- NA
-
 
 # Include transects which were surveyed, but where no individuals were detected -----------------
 # Check which transects didn't produce any observations
@@ -169,6 +157,7 @@ DSsiteCovs <- list(
               summerWarmth=scale(siteCovs$summerWarmth),
               precip=scale(siteCovs$precip),
               januaryMinTemp=scale(siteCovs$januaryMinTemp),
+              novemberMinTemp=scale(siteCovs$novemberMinTemp),
               ndvi=scale(siteCovs$ndvi),
               logs=scale(siteCovs$logs),
               freezeThaw=scale(siteCovs$ftc),

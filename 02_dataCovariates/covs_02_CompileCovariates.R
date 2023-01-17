@@ -25,8 +25,8 @@ occ_status = read.csv(paste(data_folder, "pika_site_occupation.csv", sep = "/"))
 # Select columns of interest
 sites_extracted <- sites_extracted %>% 
   select(Site, aspect, wetness, elevation, slope, roughness, exposure,
-         heatload, relief, position, radiation, evi2, nbr, ndmi, ndsi, ndvi, ndwi, precip, 
-         summerWarmth, januaryMinTemp, logs, ftc, snowDepth, snowMeltCycles, snowExtentCycles) %>% 
+         heatload, relief, position, radiation, ndvi, precip, 
+         summerWarmth, januaryMinTemp, novemberMinTemp, logs, ftc, snowDepth, snowMeltCycles) %>% 
   arrange(Site) %>% 
   mutate(occ.status = ifelse(occ_status$occ.status=="occupied",1,0),
          random.site = occ_status$random_site)
@@ -217,8 +217,8 @@ dim(transect.covs)  #transect covs is 47 rows.
 transect.covs <- transect.covs %>% 
   gather(obs1.4, Observer, -Location, -Site, -latitude, -longitude, -Year, -random.site, -occ.status, - tempc, -windms, -day.of.year, -dist.road,
          -lowshrub, - tallshrub, -talus, -eds, -aspect, -wetness, -elevation, -slope,
-         -roughness, -exposure, -heatload, -relief, -position, -radiation, -evi2, -nbr, -ndmi, -ndsi, -ndvi, -ndwi,
-         -precip, -summerWarmth, -januaryMinTemp, -logs, -ftc, -snowDepth, -snowMeltCycles, -snowExtentCycles) #Yep, 188 rows.
+         -roughness, -exposure, -heatload, -relief, -position, -radiation, -ndvi,
+         -precip, -summerWarmth, -januaryMinTemp, -novemberMinTemp, -logs, -ftc, -snowDepth, -snowMeltCycles) #Yep, 188 rows.
 head(transect.covs)
 dim(transect.covs)
 
