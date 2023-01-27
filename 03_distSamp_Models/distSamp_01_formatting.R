@@ -81,20 +81,28 @@ transect.covs$tallshrub <- as.numeric(transect.covs$tallshrub)
 #          northness, eastness)
 
 mod.covs <- transect.covs %>% 
-  select(ndvi,summerWarmth, januaryMinTemp, novemberMinTemp, logs, ftc, snowDepth, 
+  select(ndvi,summerWarmth, novemberMinTemp, logs, snowDepth, 
          snowMeltCycles, search.time, t.length, start.hr)
 
 cor <- cor(mod.covs, use="pairwise")
 
 
+# Define site-level covariates 
+siteCovs <- transect.covs[!duplicated(transect.covs["Site"]),]
+
 # Visualize correlations: only slope and roughness are highly correlated (r=0.85)
 # Anything > 0.60 or < -0.60 we considered correlated and won't consider in same model
-library(psych)
-pairs.panels(mod.covs,ellipses = F)
+library(ggstatsplot)
+png("../AKpika_HDS/output/covariateCorrelations.png", height = 6, width = 6, units = "in", res = 300)
+ggcorrmat(
+  data     = select(siteCovs, summerWarmth, novemberMinTemp, snowDepth, snowMeltCycles,
+                    logs, ndvi),
+  type = "parametric",
+  colors   = c("#B2182B", "white", "#B2182B"),
+  title    = "Correlalogram for pika model covariates"
+)
+dev.off()
 
-cor[which(cor > 0.6)]
-which(cor > 0.6 | cor < -0.6)
-cor[which(cor < 0.6 & cor > -0.6)] <- NA
 
 # Include transects which were surveyed, but where no individuals were detected -----------------
 # Check which transects didn't produce any observations
@@ -117,9 +125,6 @@ dim(pika.obs.alltrans)   #we've gone from 182 observations to 230 indicating we'
 tail(pika.obs.alltrans)  #yes, looks like we've tacked on the transects where no pika observed.
 
 # Part 3: Format the observation data for JAGS  ------------------------------------------------------------
-
-# Define site-level covariates 
-siteCovs <- transect.covs[!duplicated(transect.covs["Site"]),]
 
 obsCovData <- left_join(transect.covs, pika.obs.alltrans, by = c("Site"="Site", "transect")) %>% 
   select(-'compare.transcovs.obs$transect', -'Location.y', -'Observer.y', -'observer.y') %>% 
