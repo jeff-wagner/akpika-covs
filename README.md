@@ -1,5 +1,5 @@
 # akpika-density
-Distance sampling analysis of ecological drivers of collared pika (Ochotona collaris) densities in Alaska.
+Evaluating climate-related spatial patterns in predicted collared pika (**Ochotona collaris**) population densities using an extended Bayesian hierarchical distance sampling (HDS) model.
 
 *Author*: Jeff Wagner, University of Wyoming
 
