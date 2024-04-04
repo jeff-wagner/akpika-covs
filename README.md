@@ -1,5 +1,5 @@
-# akpika-density
-Evaluating climate-related spatial patterns in predicted collared pika (*Ochotona collaris*) population densities using an extended Bayesian hierarchical distance sampling (HDS) model.
+# akpika-covs
+Compilation of normalized spatial covariates for use in analysis of collared pika (*Ochotona collaris*) population densities.
 
 *Author*: Jeff Wagner, University of Wyoming
 
@@ -7,7 +7,7 @@ Evaluating climate-related spatial patterns in predicted collared pika (*Ochoton
 
 *Last Updated*: 2023-10-23
 
-*Description*: Scripts for data acquisition, data manipulation, statistical modeling, results post-processing, and visualization for the estimation of collared pika (*Ochotona collaris*) densities in Alaska.
+*Description*: Scripts for data acquisition, data manipulation, and post-processing of climatological and spectral covariates. Code for statistical modeling and visualization of collared pika (*Ochotona collaris*) densities in Alaska are performed in a separate repository. 
 
 ## Getting Started
 
@@ -54,7 +54,5 @@ These instructions will enable you to run scripts to estimate and evaluate drive
 * The analysis is organized in the following manner:
   +  **00_init:** Initialize R environment: set base directory (or use optional R project directory), file paths, and load required packages.
   +  **01_dataSurveys:** Data management of survey observations & GPS tracks.
-  +  **02_dataCovariates:** Data requisition and management of remote-sensed covariates; data management of survey covariates. See README in data_akveg-map folder for more details on usage, adapted from [work by colleagues](https://github.com/accs-uaa/akveg-map) at the [Alaska Center for Conservation Science](https://accs.uaa.alaska.edu/). 
-  +  **03_distSamp_Models:** Prepping data for model; building HDS model, configuring Reversible-Jump MCMC (RJMCMC), and fitting in NIMBLE (implemented on HPCC).
-  +  **04_modelPredictions:** Posterior predictions & plotting.
+  +  **02_dataCovariates:** Data requisition and management of remote-sensed covariates; data management of survey covariates. See README in data_akveg-map folder for more details on usage, adapted from [work by colleagues](https://github.com/accs-uaa/akveg-map) at the [Alaska Center for Conservation Science](https://accs.uaa.alaska.edu/).
 
