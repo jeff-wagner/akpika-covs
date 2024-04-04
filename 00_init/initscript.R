@@ -4,21 +4,15 @@
 
 # Load packages -----------------------------------------------------------------
 
-library(dplyr)
-library(data.table)
 library(tidyverse)
-library(unmarked)
 library(lubridate)
 library(ggplot2)
 library(readxl)
 library(psych)
-library(snotelr)
 library(sf)
 library(sp)
 library(mapview)
 library(lwgeom)
-library(AICcmodavg)
-library(spatialEco)
 
 
 # Set path to Excel workbook that contains the data -----------------------------
